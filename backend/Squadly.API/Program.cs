@@ -37,6 +37,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
 
 // Controllers + Swagger
 builder.Services.AddControllers();
