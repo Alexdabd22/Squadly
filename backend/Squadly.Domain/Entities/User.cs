@@ -11,4 +11,6 @@ public class User : BaseEntity
     public DateTime? LastLoginAt { get; set; }
 
     public string FullName => $"{FirstName} {LastName}".Trim();
+
+    public ICollection<ProjectMembership> ProjectMemberships { get; set; } = new List<ProjectMembership>();
 }
