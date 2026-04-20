@@ -12,5 +12,5 @@ public class Team : BaseEntity
     public User? TeamLead { get; set; }
 
     public ICollection<TeamMembership> Memberships { get; set; } = new List<TeamMembership>();
-    
+    public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
 }

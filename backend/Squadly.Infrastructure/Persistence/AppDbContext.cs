@@ -12,6 +12,8 @@ public class AppDbContext : DbContext
     public DbSet<ProjectMembership> ProjectMemberships => Set<ProjectMembership>();
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
+    public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<Comment> Comments => Set<Comment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,6 +85,7 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("TeamMemberships");
             entity.HasKey(tm => tm.Id);
+            entity.Property(tm => tm.Role).IsRequired().HasMaxLength(50);
             entity.HasIndex(tm => new { tm.UserId, tm.TeamId }).IsUnique();
 
             entity.HasOne(tm => tm.User)
@@ -94,6 +97,50 @@ public class AppDbContext : DbContext
                 .WithMany(t => t.Memberships)
                 .HasForeignKey(tm => tm.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TaskItem>(entity =>
+        {
+            entity.ToTable("TaskItem");
+            entity.HasKey(t => t.Id);
+
+            entity.Property(t => t.Title).IsRequired().HasMaxLength(200);
+            entity.Property(t => t.Description).HasMaxLength(2000);
+            entity.Property(t => t.Status).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.Priority).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(t => t.Project)
+                .WithMany(p => p.Tasks)
+                .HasForeignKey(t => t.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(t => t.Team)
+                .WithMany(team => team.Tasks)
+                .HasForeignKey(t => t.TeamId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(t => t.Assignee)
+                .WithMany(u => u.AssignedTasks)
+                .HasForeignKey(t => t.AssigneeUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Comment>(entity =>
+        {
+            entity.ToTable("Comment");
+            entity.HasKey(c => c.Id);
+
+            entity.Property(c => c.Content).IsRequired().HasMaxLength(2000);
+
+            entity.HasOne(c => c.TaskItem)
+                .WithMany(t => t.Comments)
+                .HasForeignKey(c => c.TaskItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(c => c.Author)
+                .WithMany(u => u.Comments)
+                .HasForeignKey(c => c.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

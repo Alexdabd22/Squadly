@@ -14,4 +14,7 @@ public class User : BaseEntity
 
     public ICollection<ProjectMembership> ProjectMemberships { get; set; } = new List<ProjectMembership>();
     public ICollection<TeamMembership> TeamMemberships { get; set; } = new List<TeamMembership>();
+    
+    public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
+public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 }
