@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProjectsPage from "./pages/ProjectsPage";
+import TasksPage from "./pages/TasksPage";
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
           <Link to="/login">Login</Link>
           <Link to="/register">Register</Link>
           <Link to="/projects">Projects</Link>
+          <Link to="/tasks">Tasks</Link>
         </nav>
 
         <Routes>
@@ -18,6 +20,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="*" element={<LoginPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
         </Routes>
       </div>
     </BrowserRouter>
