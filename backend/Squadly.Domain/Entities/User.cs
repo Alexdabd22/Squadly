@@ -13,4 +13,5 @@ public class User : BaseEntity
     public string FullName => $"{FirstName} {LastName}".Trim();
 
     public ICollection<ProjectMembership> ProjectMemberships { get; set; } = new List<ProjectMembership>();
+    public ICollection<TeamMembership> TeamMemberships { get; set; } = new List<TeamMembership>();
 }

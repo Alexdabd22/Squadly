@@ -10,6 +10,7 @@ public class Project : BaseEntity
     public User? CreatedByUser { get; set; }
 
     public ICollection<ProjectMembership> Memberships { get; set; } = new List<ProjectMembership>();
+    public ICollection<Team> Teams { get; set; } = new List<Team>();
 }
 
 public enum ProjectStatus
