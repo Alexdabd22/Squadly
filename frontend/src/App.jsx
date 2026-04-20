@@ -3,6 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import TasksPage from "./pages/TasksPage";
+import TeamsPage from "./pages/TeamsPage";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
           <Link to="/register">Register</Link>
           <Link to="/projects">Projects</Link>
           <Link to="/tasks">Tasks</Link>
+          <Link to="/teams">Teams</Link>
         </nav>
 
         <Routes>
@@ -21,6 +23,7 @@ export default function App() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="*" element={<LoginPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/teams" element={<TeamsPage />} />
         </Routes>
       </div>
     </BrowserRouter>

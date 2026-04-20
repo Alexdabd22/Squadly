@@ -5,6 +5,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [message, setMessage] = useState("");
+  const [commentTexts, setCommentTexts] = useState({});
 
   const [form, setForm] = useState({
     title: "",
@@ -76,7 +77,6 @@ export default function TasksPage() {
 
       loadTasks();
     } catch (error) {
-      console.log(error);
       setMessage(error.response?.data?.message || "Не вдалося створити задачу");
     }
   };
@@ -89,7 +89,6 @@ export default function TasksPage() {
       setMessage("Задачу видалено");
       loadTasks();
     } catch (error) {
-      console.log(error);
       setMessage(error.response?.data?.message || "Не вдалося видалити задачу");
     }
   };
@@ -117,8 +116,48 @@ export default function TasksPage() {
       setMessage("Статус задачі оновлено");
       loadTasks();
     } catch (error) {
-      console.log(error);
       setMessage(error.response?.data?.message || "Не вдалося оновити статус");
+    }
+  };
+
+  const handleCommentChange = (taskId, value) => {
+    setCommentTexts((prev) => ({
+      ...prev,
+      [taskId]: value
+    }));
+  };
+
+  const handleAddComment = async (taskId) => {
+    setMessage("");
+
+    const text = commentTexts[taskId];
+    const userId = localStorage.getItem("userId");
+
+    if (!text || !text.trim()) {
+      setMessage("Введіть текст коментаря");
+      return;
+    }
+
+    if (!userId) {
+      setMessage("Немає userId у localStorage");
+      return;
+    }
+
+    try {
+      await api.post(`/tasks/${taskId}/comments`, {
+        authorUserId: userId,
+        content: text
+      });
+
+      setCommentTexts((prev) => ({
+        ...prev,
+        [taskId]: ""
+      }));
+
+      setMessage("Коментар додано");
+      loadTasks();
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Не вдалося додати коментар");
     }
   };
 
@@ -173,13 +212,6 @@ export default function TasksPage() {
           ))}
         </select>
 
-        <input
-          type="date"
-          name="dueDate"
-          value={form.dueDate}
-          onChange={handleChange}
-        />
-
         <button type="submit">Create task</button>
       </form>
 
@@ -190,22 +222,49 @@ export default function TasksPage() {
       ) : (
         <ul>
           {tasks.map((task) => (
-            <li key={task.id} style={{ marginBottom: "10px" }}>
-              <strong>{task.title}</strong> — {task.status} / {task.priority}
+            <li key={task.id} style={{ marginBottom: "20px" }}>
+              <div>
+                <strong>{task.title}</strong> — {task.status} / {task.priority}
+              </div>
 
-              <button
-                onClick={() => handleChangeStatus(task)}
-                style={{ marginLeft: "10px" }}
-              >
-                Change status
-              </button>
+              <div style={{ marginTop: "8px" }}>
+                <button onClick={() => handleChangeStatus(task)}>
+                  Change status
+                </button>
 
-              <button
-                onClick={() => handleDelete(task.id)}
-                style={{ marginLeft: "10px" }}
-              >
-                Delete
-              </button>
+                <button
+                  onClick={() => handleDelete(task.id)}
+                  style={{ marginLeft: "10px" }}
+                >
+                  Delete
+                </button>
+              </div>
+
+              <div style={{ marginTop: "10px" }}>
+                <input
+                  type="text"
+                  placeholder="New comment"
+                  value={commentTexts[task.id] || ""}
+                  onChange={(e) => handleCommentChange(task.id, e.target.value)}
+                  style={{ marginRight: "10px", width: "250px" }}
+                />
+                <button onClick={() => handleAddComment(task.id)}>
+                  Add comment
+                </button>
+              </div>
+
+              <div style={{ marginTop: "10px" }}>
+                <strong>Comments:</strong>
+                {task.comments && task.comments.length > 0 ? (
+                  <ul>
+                    {task.comments.map((comment) => (
+                      <li key={comment.id}>{comment.content}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No comments yet.</p>
+                )}
+              </div>
             </li>
           ))}
         </ul>

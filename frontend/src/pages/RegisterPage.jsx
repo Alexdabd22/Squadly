@@ -24,7 +24,7 @@ export default function RegisterPage() {
 
     try {
       const response = await api.post("/auth/register", form);
-      localStorage.setItem("token", response.data.accessToken);
+      localStorage.setItem("userId", response.data.user.id);
       setMessage("Реєстрація успішна");
     } catch (error) {
       setMessage(error.response?.data?.message || "Помилка реєстрації");
