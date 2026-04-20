@@ -101,7 +101,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<TaskItem>(entity =>
         {
-            entity.ToTable("Tasks");
+            entity.ToTable("TaskItem");
             entity.HasKey(t => t.Id);
 
             entity.Property(t => t.Title).IsRequired().HasMaxLength(200);
@@ -127,7 +127,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Comment>(entity =>
         {
-            entity.ToTable("Comments");
+            entity.ToTable("Comment");
             entity.HasKey(c => c.Id);
 
             entity.Property(c => c.Content).IsRequired().HasMaxLength(2000);

@@ -5,6 +5,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [message, setMessage] = useState("");
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -44,31 +45,41 @@ export default function TasksPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setMessage("");
 
-    try {
-      await api.post("/tasks", {
-        ...form,
-        projectId: form.projectId || null,
-        dueDate: form.dueDate || null
-      });
+  if (!form.projectId) {
+    setMessage("Оберіть проєкт");
+    return;
+  }
 
-      setForm({
-        title: "",
-        description: "",
-        status: "ToDo",
-        priority: "Medium",
-        projectId: "",
-        dueDate: ""
-      });
+  try {
+    await api.post("/tasks", {
+      title: form.title,
+      description: form.description,
+      status: form.status,
+      priority: form.priority,
+      projectId: form.projectId
+    });
 
-      loadTasks();
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося створити задачу");
-    }
-  };
+    setMessage("Задачу створено");
+
+    setForm({
+      title: "",
+      description: "",
+      status: "ToDo",
+      priority: "Medium",
+      projectId: "",
+      dueDate: ""
+    });
+
+    loadTasks();
+  } catch (error) {
+    console.log(error);
+    setMessage(error.response?.data?.message || "Не вдалося створити задачу");
+  }
+};
 
   return (
     <div>
@@ -76,7 +87,13 @@ export default function TasksPage() {
 
       <form
         onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "400px", marginBottom: "20px" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          maxWidth: "400px",
+          marginBottom: "20px"
+        }}
       >
         <input
           type="text"
