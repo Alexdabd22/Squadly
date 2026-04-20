@@ -19,15 +19,18 @@ public class AuthService : IAuthService
 
     public async Task<AuthResultDto> RegisterAsync(RegisterDto dto)
     {
-        if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
+        if (await _db.Users.AnyAsync(u => u.Email == dto.Email.ToLower()))
             throw new InvalidOperationException("Email вже використовується");
+
+        if (dto.Password.Length < 8)
+            throw new ArgumentException("Пароль має бути не менше 8 символів");
 
         var user = new User
         {
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Email = dto.Email.ToLower(),
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12)
         };
 
         _db.Users.Add(user);
@@ -38,7 +41,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResultDto> LoginAsync(LoginDto dto)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower())
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower())
             ?? throw new UnauthorizedAccessException("Невірний email або пароль");
 
         if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
