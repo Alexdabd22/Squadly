@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Squadly.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Squadly.Infrastructure.Persistence;
 namespace Squadly.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420165319_AddTeams")]
+    partial class AddTeams
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,79 +106,6 @@ namespace Squadly.Infrastructure.Migrations
                     b.ToTable("ProjectMemberships", (string)null);
                 });
 
-            modelBuilder.Entity("Squadly.Domain.Entities.Team", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("TeamLeadUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("TeamLeadUserId");
-
-                    b.ToTable("Teams", (string)null);
-                });
-
-            modelBuilder.Entity("Squadly.Domain.Entities.TeamMembership", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("TeamId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TeamId");
-
-                    b.HasIndex("UserId", "TeamId")
-                        .IsUnique();
-
-                    b.ToTable("TeamMemberships", (string)null);
-                });
-
             modelBuilder.Entity("Squadly.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -257,51 +187,7 @@ namespace Squadly.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Squadly.Domain.Entities.Team", b =>
-                {
-                    b.HasOne("Squadly.Domain.Entities.Project", "Project")
-                        .WithMany("Teams")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Squadly.Domain.Entities.User", "TeamLead")
-                        .WithMany()
-                        .HasForeignKey("TeamLeadUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Project");
-
-                    b.Navigation("TeamLead");
-                });
-
-            modelBuilder.Entity("Squadly.Domain.Entities.TeamMembership", b =>
-                {
-                    b.HasOne("Squadly.Domain.Entities.Team", "Team")
-                        .WithMany("Memberships")
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Squadly.Domain.Entities.User", "User")
-                        .WithMany("TeamMemberships")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Team");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Squadly.Domain.Entities.Project", b =>
-                {
-                    b.Navigation("Memberships");
-
-                    b.Navigation("Teams");
-                });
-
-            modelBuilder.Entity("Squadly.Domain.Entities.Team", b =>
                 {
                     b.Navigation("Memberships");
                 });
@@ -309,8 +195,6 @@ namespace Squadly.Infrastructure.Migrations
             modelBuilder.Entity("Squadly.Domain.Entities.User", b =>
                 {
                     b.Navigation("ProjectMemberships");
-
-                    b.Navigation("TeamMemberships");
                 });
 #pragma warning restore 612, 618
         }
