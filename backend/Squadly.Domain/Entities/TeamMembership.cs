@@ -8,5 +8,6 @@ public class TeamMembership : BaseEntity
     public Guid TeamId { get; set; }
     public Team? Team { get; set; }
 
+    public string Role { get; set; } = "Member";
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 }
