@@ -45,41 +45,82 @@ export default function TasksPage() {
     });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
 
-  if (!form.projectId) {
-    setMessage("Оберіть проєкт");
-    return;
-  }
+    if (!form.projectId) {
+      setMessage("Оберіть проєкт");
+      return;
+    }
 
-  try {
-    await api.post("/tasks", {
-      title: form.title,
-      description: form.description,
-      status: form.status,
-      priority: form.priority,
-      projectId: form.projectId
-    });
+    try {
+      await api.post("/tasks", {
+        title: form.title,
+        description: form.description,
+        status: form.status,
+        priority: form.priority,
+        projectId: form.projectId
+      });
 
-    setMessage("Задачу створено");
+      setMessage("Задачу створено");
 
-    setForm({
-      title: "",
-      description: "",
-      status: "ToDo",
-      priority: "Medium",
-      projectId: "",
-      dueDate: ""
-    });
+      setForm({
+        title: "",
+        description: "",
+        status: "ToDo",
+        priority: "Medium",
+        projectId: "",
+        dueDate: ""
+      });
 
-    loadTasks();
-  } catch (error) {
-    console.log(error);
-    setMessage(error.response?.data?.message || "Не вдалося створити задачу");
-  }
-};
+      loadTasks();
+    } catch (error) {
+      console.log(error);
+      setMessage(error.response?.data?.message || "Не вдалося створити задачу");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setMessage("");
+
+    try {
+      await api.delete(`/tasks/${id}`);
+      setMessage("Задачу видалено");
+      loadTasks();
+    } catch (error) {
+      console.log(error);
+      setMessage(error.response?.data?.message || "Не вдалося видалити задачу");
+    }
+  };
+
+  const getNextStatus = (status) => {
+    if (status === "ToDo") return "InProgress";
+    if (status === "InProgress") return "Done";
+    return "ToDo";
+  };
+
+  const handleChangeStatus = async (task) => {
+    setMessage("");
+
+    try {
+      await api.put(`/tasks/${task.id}`, {
+        title: task.title,
+        description: task.description,
+        status: getNextStatus(task.status),
+        priority: task.priority,
+        teamId: task.teamId ?? null,
+        assigneeUserId: task.assigneeUserId ?? null,
+        dueDate: task.dueDate ?? null
+      });
+
+      setMessage("Статус задачі оновлено");
+      loadTasks();
+    } catch (error) {
+      console.log(error);
+      setMessage(error.response?.data?.message || "Не вдалося оновити статус");
+    }
+  };
 
   return (
     <div>
@@ -149,8 +190,22 @@ export default function TasksPage() {
       ) : (
         <ul>
           {tasks.map((task) => (
-            <li key={task.id}>
+            <li key={task.id} style={{ marginBottom: "10px" }}>
               <strong>{task.title}</strong> — {task.status} / {task.priority}
+
+              <button
+                onClick={() => handleChangeStatus(task)}
+                style={{ marginLeft: "10px" }}
+              >
+                Change status
+              </button>
+
+              <button
+                onClick={() => handleDelete(task.id)}
+                style={{ marginLeft: "10px" }}
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>
