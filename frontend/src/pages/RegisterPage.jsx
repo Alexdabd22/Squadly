@@ -18,18 +18,21 @@ export default function RegisterPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setMessage("");
 
-    try {
-      const response = await api.post("/auth/register", form);
-      localStorage.setItem("userId", response.data.user.id);
-      setMessage("Реєстрація успішна");
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Помилка реєстрації");
-    }
-  };
+  try {
+    const response = await api.post("/auth/register", form);
+
+    localStorage.setItem("token", response.data.accessToken);
+    localStorage.setItem("userId", response.data.user.id);
+
+    setMessage("Реєстрація успішна");
+  } catch (error) {
+    setMessage(error.response?.data?.message || "Помилка реєстрації");
+  }
+};
 
   return (
     <div>

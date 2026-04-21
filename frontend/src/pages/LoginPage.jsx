@@ -16,22 +16,25 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setMessage("");
 
-    console.log("login submit", form);
+  console.log("login submit", form);
 
-    try {
-      const response = await api.post("/auth/login", form);
-      localStorage.setItem("token", response.data.accessToken);
-      setMessage("Вхід успішний");
-      console.log("login ok", response.data);
-    } catch (error) {
-      console.log("login error", error);
-      setMessage(error.response?.data?.message || "Помилка входу");
-    }
-  };
+  try {
+    const response = await api.post("/auth/login", form);
+
+    localStorage.setItem("token", response.data.accessToken);
+    localStorage.setItem("userId", response.data.user.id);
+
+    setMessage("Вхід успішний");
+    console.log("login ok", response.data);
+  } catch (error) {
+    console.log("login error", error);
+    setMessage(error.response?.data?.message || "Помилка входу");
+  }
+};
 
   return (
     <div>
