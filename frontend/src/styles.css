@@ -1,0 +1,376 @@
+:root {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --border: #e4e7ee;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --radius: 8px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.app-nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  align-items: center;
+}
+
+.app-nav .brand {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--primary);
+  margin-right: 16px;
+}
+
+.app-nav a {
+  text-decoration: none;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.app-nav a:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app-nav .spacer {
+  flex: 1;
+}
+
+.app-nav .user-info {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+/* === Картки === */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.card-meta {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* === Форми === */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.form-wide {
+  max-width: 560px;
+}
+
+.form input[type="text"],
+.form input[type="email"],
+.form input[type="password"],
+.form select,
+.form textarea,
+input[type="text"].field,
+input[type="email"].field,
+input[type="password"].field,
+select.field,
+textarea.field {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus,
+.field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: -4px;
+}
+
+/* === Кнопки === */
+button {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.05s;
+}
+
+button:hover {
+  background: var(--primary-hover);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.btn-secondary:hover {
+  background: var(--bg);
+}
+
+button.btn-danger {
+  background: var(--danger);
+}
+
+button.btn-danger:hover {
+  background: var(--danger-hover);
+}
+
+button.btn-small {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* === Повідомлення === */
+.message {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 13px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.message.success {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.message.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* === Списки === */
+ul.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul.plain-list > li {
+  margin-bottom: 12px;
+}
+
+/* === Badge (статуси / пріоритети) === */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: #e5e7eb;
+  color: #374151;
+  margin-right: 6px;
+}
+
+.badge.status-ToDo {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge.status-InProgress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.status-Done {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.priority-Low {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.badge.priority-Medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.priority-High {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* === Блоки деталей === */
+.detail-row {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.detail-row .label {
+  color: var(--text-muted);
+  min-width: 80px;
+}
+
+/* === Коментарі === */
+.comments-block {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.comments-block strong {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.comments-block ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+}
+
+.comments-block li {
+  padding: 6px 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.comment-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.comment-input-row input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* === Edit mode для задачі === */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 480px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+
+/* === Auth форма (по центру) === */
+.auth-wrapper {
+  max-width: 400px;
+  margin: 40px auto 0;
+}
+
+.auth-wrapper .card {
+  padding: 28px;
+}
