@@ -1,0 +1,139 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# .gitlab-ci.yml — CI/CD Pipeline для Squadly
+# Проект: ASP.NET Core 8 Web API (backend) + React 19 + Vite (frontend)
+# Executor: shell (Windows) 
+# Автор: Пастухов Олександр Костянтинович, ІПЗ-22-4
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── Порядок stages ──────────────────────────────────────────────────────────
+# Кожен наступний stage стартує тільки після успішного завершення попереднього.
+stages:
+  - build     
+  - test      
+  - docker   
+  - deploy    
+
+# ── Глобальні змінні ────────────────────────────────────────────────────────
+variables:
+  # Папка куди зберігаються NuGet пакети (щоб кеш знаходив їх)
+  NUGET_PACKAGES: "$CI_PROJECT_DIR/.nuget/packages"
+  IMAGE_BACKEND: "squadly-backend"
+  IMAGE_FRONTEND: "squadly-frontend"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .nuget/packages/           
+    - frontend/node_modules/     
+
+backend_build:
+  stage: build
+  tags: [student]   
+  script:
+    - echo "=== Backend build stage ==="
+    - cd backend
+    - dotnet restore Squadly.sln --packages "$NUGET_PACKAGES"
+    - dotnet build Squadly.sln --configuration Release --no-restore
+    - cd ..
+    - if not exist build-report mkdir build-report
+    - echo Build date %DATE% %TIME% > build-report/info.txt
+    - echo Branch %CI_COMMIT_REF_NAME% >> build-report/info.txt
+    - echo Commit %CI_COMMIT_SHORT_SHA% >> build-report/info.txt
+    - echo Pipeline %CI_PIPELINE_ID% >> build-report/info.txt
+    - type build-report/info.txt
+  artifacts:
+    paths:
+      - backend/Squadly.API/bin/
+      - backend/Squadly.API/obj/
+      - backend/Squadly.Application/bin/
+      - backend/Squadly.Infrastructure/bin/
+      - backend/Squadly.Domain/bin/
+      - backend/Squadly.Tests/bin/
+      - backend/Squadly.Tests/obj/
+      - build-report/
+    expire_in: 1 hour
+
+frontend_build:
+  stage: build
+  tags: [student]
+  script:
+    - echo "=== Frontend build stage ==="
+    - cd frontend
+    - npm ci --no-audit --no-fund
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+      - frontend/node_modules/
+    expire_in: 1 hour
+
+
+
+#  backend_test ──
+backend_test:
+  stage: test
+  tags: [student]
+  dependencies:
+    - backend_build   
+  script:
+    - echo "=== Backend test stage ==="
+    - type build-report\info.txt
+    - cd backend
+    - dotnet test Squadly.sln --configuration Release --no-build --verbosity normal
+
+# Статичний аналіз коду — перевіряє стиль і потенційні помилки
+frontend_lint:
+  stage: test
+  tags: [student]
+  dependencies:
+    - frontend_build   
+  script:
+    - echo "=== Frontend lint stage ==="
+    - cd frontend
+    - npm run lint
+  allow_failure: true  
+
+# Збирає Docker image для .NET API
+docker_build_backend:
+  stage: docker
+  tags: [student]
+  script:
+    - echo "=== Docker build backend ==="
+    - docker build -t %IMAGE_BACKEND%:%CI_COMMIT_SHORT_SHA% -t %IMAGE_BACKEND%:latest -f backend/Squadly.API/Dockerfile backend/
+    - docker images | findstr %IMAGE_BACKEND%
+
+# Збирає Docker image для React SPA 
+docker_build_frontend:
+  stage: docker
+  tags: [student]
+  script:
+    - echo "=== Docker build frontend ==="
+    - docker build -t %IMAGE_FRONTEND%:%CI_COMMIT_SHORT_SHA% -t %IMAGE_FRONTEND%:latest frontend/
+    - docker images | findstr %IMAGE_FRONTEND%
+
+# Імітація розгортання — генерує manifest з інформацією про deploy
+deploy_staging:
+  stage: deploy
+  tags: [student]
+  only:
+    - main   # виконується ТІЛЬКИ при push у main 
+  script:
+    - echo "=== Deploy staging ==="
+    - if not exist deployment mkdir deployment
+    - echo === SQUADLY DEPLOYMENT MANIFEST === > deployment/manifest.txt
+    - echo Environment: staging >> deployment/manifest.txt
+    - echo Deploy date: %DATE% %TIME% >> deployment/manifest.txt
+    - echo Git branch: %CI_COMMIT_REF_NAME% >> deployment/manifest.txt
+    - echo Git commit: %CI_COMMIT_SHA% >> deployment/manifest.txt
+    - echo Pipeline ID: %CI_PIPELINE_ID% >> deployment/manifest.txt
+    - echo Backend image: %IMAGE_BACKEND%:%CI_COMMIT_SHORT_SHA% >> deployment/manifest.txt
+    - echo Frontend image: %IMAGE_FRONTEND%:%CI_COMMIT_SHORT_SHA% >> deployment/manifest.txt
+    - echo Deploy status: SIMULATED OK >> deployment/manifest.txt
+    - type deployment\manifest.txt
+    - echo ">>> In production here would be: kubectl apply / docker-compose up / ssh deploy"
+  artifacts:
+    paths:
+      - deployment/
+    expire_in: 7 days
+  environment:
+    name: staging
