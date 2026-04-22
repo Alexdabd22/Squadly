@@ -6,6 +6,7 @@ export default function TasksPage() {
   const [projects, setProjects] = useState([]);
   const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
   const [commentTexts, setCommentTexts] = useState({});
   const [editingTaskId, setEditingTaskId] = useState(null);
 
@@ -34,12 +35,17 @@ export default function TasksPage() {
     loadTasks();
   }, []);
 
+  const showMessage = (text, error = false) => {
+    setMessage(text);
+    setIsError(error);
+  };
+
   const loadProjects = async () => {
     try {
       const response = await api.get("/projects");
       setProjects(response.data);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося завантажити проєкти");
+      showMessage(error.response?.data?.message || "Не вдалося завантажити проєкти", true);
     }
   };
 
@@ -48,7 +54,7 @@ export default function TasksPage() {
       const response = await api.get("/teams");
       setTeams(response.data);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося завантажити команди");
+      showMessage(error.response?.data?.message || "Не вдалося завантажити команди", true);
     }
   };
 
@@ -57,7 +63,7 @@ export default function TasksPage() {
       const response = await api.get("/tasks");
       setTasks(response.data);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося завантажити задачі");
+      showMessage(error.response?.data?.message || "Не вдалося завантажити задачі", true);
     }
   };
 
@@ -80,7 +86,7 @@ export default function TasksPage() {
     setMessage("");
 
     if (!form.projectId) {
-      setMessage("Оберіть проєкт");
+      showMessage("Оберіть проєкт", true);
       return;
     }
 
@@ -95,7 +101,7 @@ export default function TasksPage() {
         assigneeUserId: form.assigneeUserId || null
       });
 
-      setMessage("Задачу створено");
+      showMessage("Задачу створено");
 
       setForm({
         title: "",
@@ -109,19 +115,18 @@ export default function TasksPage() {
 
       loadTasks();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося створити задачу");
+      showMessage(error.response?.data?.message || "Не вдалося створити задачу", true);
     }
   };
 
   const handleDelete = async (id) => {
     setMessage("");
-
     try {
       await api.delete(`/tasks/${id}`);
-      setMessage("Задачу видалено");
+      showMessage("Задачу видалено");
       loadTasks();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося видалити задачу");
+      showMessage(error.response?.data?.message || "Не вдалося видалити задачу", true);
     }
   };
 
@@ -133,7 +138,6 @@ export default function TasksPage() {
 
   const handleChangeStatus = async (task) => {
     setMessage("");
-
     try {
       await api.put(`/tasks/${task.id}`, {
         title: task.title,
@@ -145,10 +149,10 @@ export default function TasksPage() {
         dueDate: task.dueDate || null
       });
 
-      setMessage("Статус задачі оновлено");
+      showMessage("Статус задачі оновлено");
       loadTasks();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося оновити статус");
+      showMessage(error.response?.data?.message || "Не вдалося оновити статус", true);
     }
   };
 
@@ -178,7 +182,6 @@ export default function TasksPage() {
 
   const handleUpdateTask = async (taskId) => {
     setMessage("");
-
     try {
       await api.put(`/tasks/${taskId}`, {
         title: editForm.title,
@@ -190,11 +193,11 @@ export default function TasksPage() {
         dueDate: null
       });
 
-      setMessage("Задачу оновлено");
+      showMessage("Задачу оновлено");
       setEditingTaskId(null);
       loadTasks();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося оновити задачу");
+      showMessage(error.response?.data?.message || "Не вдалося оновити задачу", true);
     }
   };
 
@@ -212,12 +215,12 @@ export default function TasksPage() {
     const userId = localStorage.getItem("userId");
 
     if (!text || !text.trim()) {
-      setMessage("Введіть текст коментаря");
+      showMessage("Введіть текст коментаря", true);
       return;
     }
 
     if (!userId) {
-      setMessage("Немає userId у localStorage");
+      showMessage("Немає userId у localStorage", true);
       return;
     }
 
@@ -232,10 +235,10 @@ export default function TasksPage() {
         [taskId]: ""
       }));
 
-      setMessage("Коментар додано");
+      showMessage("Коментар додано");
       loadTasks();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося додати коментар");
+      showMessage(error.response?.data?.message || "Не вдалося додати коментар", true);
     }
   };
 
@@ -243,190 +246,230 @@ export default function TasksPage() {
     <div>
       <h1>Tasks</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          maxWidth: "450px",
-          marginBottom: "20px"
-        }}
-      >
-        <input
-          type="text"
-          name="title"
-          placeholder="Task title"
-          value={form.title}
-          onChange={handleChange}
-        />
+      <div className="card">
+        <h2>Create task</h2>
+        <form onSubmit={handleSubmit} className="form form-wide">
+          <label>Title</label>
+          <input
+            type="text"
+            name="title"
+            placeholder="Task title"
+            value={form.title}
+            onChange={handleChange}
+          />
 
-        <input
-          type="text"
-          name="description"
-          placeholder="Task description"
-          value={form.description}
-          onChange={handleChange}
-        />
+          <label>Description</label>
+          <input
+            type="text"
+            name="description"
+            placeholder="Task description"
+            value={form.description}
+            onChange={handleChange}
+          />
 
-        <select name="status" value={form.status} onChange={handleChange}>
-          <option value="ToDo">ToDo</option>
-          <option value="InProgress">InProgress</option>
-          <option value="Done">Done</option>
-        </select>
+          <label>Status</label>
+          <select name="status" value={form.status} onChange={handleChange}>
+            <option value="ToDo">ToDo</option>
+            <option value="InProgress">InProgress</option>
+            <option value="Done">Done</option>
+          </select>
 
-        <select name="priority" value={form.priority} onChange={handleChange}>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-        </select>
+          <label>Priority</label>
+          <select name="priority" value={form.priority} onChange={handleChange}>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
 
-        <select name="projectId" value={form.projectId} onChange={handleChange}>
-          <option value="">Select project</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.title}
-            </option>
-          ))}
-        </select>
+          <label>Project</label>
+          <select name="projectId" value={form.projectId} onChange={handleChange}>
+            <option value="">Select project</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
 
-        <select name="teamId" value={form.teamId} onChange={handleChange}>
-          <option value="">Select team</option>
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </select>
+          <label>Team (optional)</label>
+          <select name="teamId" value={form.teamId} onChange={handleChange}>
+            <option value="">Select team</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
 
-        <input
-          type="text"
-          name="assigneeUserId"
-          placeholder="Assignee user id (optional)"
-          value={form.assigneeUserId}
-          onChange={handleChange}
-        />
+          <label>Assignee user id (optional)</label>
+          <input
+            type="text"
+            name="assigneeUserId"
+            placeholder="UUID"
+            value={form.assigneeUserId}
+            onChange={handleChange}
+          />
 
-        <button type="submit">Create task</button>
-      </form>
+          <button type="submit">Create task</button>
+        </form>
+      </div>
 
-      {message && <p>{message}</p>}
+      {message && (
+        <div className={`message ${isError ? "error" : "success"}`}>
+          {message}
+        </div>
+      )}
 
+      <h2>All tasks</h2>
       {tasks.length === 0 ? (
-        <p>Задач поки немає.</p>
+        <div className="empty-state">Задач поки немає.</div>
       ) : (
-        <ul>
+        <ul className="plain-list">
           {tasks.map((task) => (
-            <li key={task.id} style={{ marginBottom: "24px" }}>
-              {editingTaskId === task.id ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "450px" }}>
-                  <input
-                    type="text"
-                    name="title"
-                    value={editForm.title}
-                    onChange={handleEditChange}
-                  />
-
-                  <input
-                    type="text"
-                    name="description"
-                    value={editForm.description}
-                    onChange={handleEditChange}
-                  />
-
-                  <select name="status" value={editForm.status} onChange={handleEditChange}>
-                    <option value="ToDo">ToDo</option>
-                    <option value="InProgress">InProgress</option>
-                    <option value="Done">Done</option>
-                  </select>
-
-                  <select name="priority" value={editForm.priority} onChange={handleEditChange}>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-
-                  <select name="teamId" value={editForm.teamId} onChange={handleEditChange}>
-                    <option value="">Select team</option>
-                    {teams.map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="text"
-                    name="assigneeUserId"
-                    placeholder="Assignee user id"
-                    value={editForm.assigneeUserId}
-                    onChange={handleEditChange}
-                  />
-
-                  <div>
-                    <button onClick={() => handleUpdateTask(task.id)}>Save</button>
-                    <button onClick={cancelEditTask} style={{ marginLeft: "10px" }}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <strong>{task.title}</strong> — {task.status} / {task.priority}
-                  </div>
-
-                  <div>Project: {task.project?.title || "—"}</div>
-                  <div>Team: {task.team?.name || "—"}</div>
-                  <div>Assignee: {task.assignee?.fullName || task.assignee?.email || "—"}</div>
-
-                  <div style={{ marginTop: "8px" }}>
-                    <button onClick={() => handleChangeStatus(task)}>
-                      Change status
-                    </button>
-
-                    <button
-                      onClick={() => startEditTask(task)}
-                      style={{ marginLeft: "10px" }}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(task.id)}
-                      style={{ marginLeft: "10px" }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                  <div style={{ marginTop: "10px" }}>
+            <li key={task.id}>
+              <div className="card">
+                {editingTaskId === task.id ? (
+                  <div className="edit-form">
+                    <label>Title</label>
                     <input
                       type="text"
-                      placeholder="New comment"
-                      value={commentTexts[task.id] || ""}
-                      onChange={(e) => handleCommentChange(task.id, e.target.value)}
-                      style={{ marginRight: "10px", width: "250px" }}
+                      name="title"
+                      className="field"
+                      value={editForm.title}
+                      onChange={handleEditChange}
                     />
-                    <button onClick={() => handleAddComment(task.id)}>
-                      Add comment
-                    </button>
-                  </div>
 
-                  <div style={{ marginTop: "10px" }}>
-                    <strong>Comments:</strong>
-                    {task.comments && task.comments.length > 0 ? (
-                      <ul>
-                        {task.comments.map((comment) => (
-                          <li key={comment.id}>{comment.content}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>No comments yet.</p>
-                    )}
+                    <label>Description</label>
+                    <input
+                      type="text"
+                      name="description"
+                      className="field"
+                      value={editForm.description}
+                      onChange={handleEditChange}
+                    />
+
+                    <label>Status</label>
+                    <select
+                      name="status"
+                      className="field"
+                      value={editForm.status}
+                      onChange={handleEditChange}
+                    >
+                      <option value="ToDo">ToDo</option>
+                      <option value="InProgress">InProgress</option>
+                      <option value="Done">Done</option>
+                    </select>
+
+                    <label>Priority</label>
+                    <select
+                      name="priority"
+                      className="field"
+                      value={editForm.priority}
+                      onChange={handleEditChange}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+
+                    <label>Team</label>
+                    <select
+                      name="teamId"
+                      className="field"
+                      value={editForm.teamId}
+                      onChange={handleEditChange}
+                    >
+                      <option value="">Select team</option>
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <label>Assignee user id</label>
+                    <input
+                      type="text"
+                      name="assigneeUserId"
+                      className="field"
+                      placeholder="UUID"
+                      value={editForm.assigneeUserId}
+                      onChange={handleEditChange}
+                    />
+
+                    <div className="btn-group" style={{ marginTop: 8 }}>
+                      <button onClick={() => handleUpdateTask(task.id)}>Save</button>
+                      <button className="btn-secondary" onClick={cancelEditTask}>
+                        Cancel
+                      </button>
+                    </div>
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="card-title">{task.title}</div>
+                    <div style={{ marginBottom: 8 }}>
+                      <span className={`badge status-${task.status}`}>{task.status}</span>
+                      <span className={`badge priority-${task.priority}`}>{task.priority}</span>
+                    </div>
+
+                    {task.description && (
+                      <div className="card-meta">{task.description}</div>
+                    )}
+
+                    <div className="detail-row">
+                      <span className="label">Project:</span>
+                      <span>{task.project?.title || "—"}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Team:</span>
+                      <span>{task.team?.name || "—"}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Assignee:</span>
+                      <span>{task.assignee?.fullName || task.assignee?.email || "—"}</span>
+                    </div>
+
+                    <div className="btn-group" style={{ marginTop: 10 }}>
+                      <button className="btn-small" onClick={() => handleChangeStatus(task)}>
+                        Change status
+                      </button>
+                      <button className="btn-small btn-secondary" onClick={() => startEditTask(task)}>
+                        Edit
+                      </button>
+                      <button className="btn-small btn-danger" onClick={() => handleDelete(task.id)}>
+                        Delete
+                      </button>
+                    </div>
+
+                    <div className="comment-input-row">
+                      <input
+                        type="text"
+                        placeholder="New comment"
+                        value={commentTexts[task.id] || ""}
+                        onChange={(e) => handleCommentChange(task.id, e.target.value)}
+                      />
+                      <button className="btn-small" onClick={() => handleAddComment(task.id)}>
+                        Add comment
+                      </button>
+                    </div>
+
+                    <div className="comments-block">
+                      <strong>Comments:</strong>
+                      {task.comments && task.comments.length > 0 ? (
+                        <ul>
+                          {task.comments.map((comment) => (
+                            <li key={comment.id}>{comment.content}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "8px 0 0 0" }}>
+                          No comments yet.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </li>
           ))}
         </ul>

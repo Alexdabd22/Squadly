@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function RegisterPage() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -10,6 +13,7 @@ export default function RegisterPage() {
   });
 
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -18,66 +22,82 @@ export default function RegisterPage() {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setIsError(false);
 
-  try {
-    const response = await api.post("/auth/register", form);
+    try {
+      const response = await api.post("/auth/register", form);
 
-    localStorage.setItem("token", response.data.accessToken);
-    localStorage.setItem("userId", response.data.user.id);
+      localStorage.setItem("token", response.data.accessToken);
+      localStorage.setItem("userId", response.data.user.id);
 
-    setMessage("Реєстрація успішна");
-  } catch (error) {
-    setMessage(error.response?.data?.message || "Помилка реєстрації");
-  }
-};
+      window.dispatchEvent(new Event("authChanged"));
+
+      setMessage("Реєстрація успішна");
+      setIsError(false);
+
+      setTimeout(() => {
+        navigate("/projects");
+      }, 500);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Помилка реєстрації");
+      setIsError(true);
+    }
+  };
 
   return (
-    <div>
-      <h1>Register</h1>
+    <div className="auth-wrapper">
+      <div className="card">
+        <h1>Register</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "10px", maxWidth: "300px" }}
-      >
-        <input
-          type="text"
-          name="firstName"
-          placeholder="First name"
-          value={form.firstName}
-          onChange={handleChange}
-        />
+        <form onSubmit={handleSubmit} className="form">
+          <label>First name</label>
+          <input
+            type="text"
+            name="firstName"
+            placeholder="Oleg"
+            value={form.firstName}
+            onChange={handleChange}
+          />
 
-        <input
-          type="text"
-          name="lastName"
-          placeholder="Last name"
-          value={form.lastName}
-          onChange={handleChange}
-        />
+          <label>Last name</label>
+          <input
+            type="text"
+            name="lastName"
+            placeholder=" Petrenko"
+            value={form.lastName}
+            onChange={handleChange}
+          />
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-        />
+          <label>Email</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            value={form.email}
+            onChange={handleChange}
+          />
 
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-        />
+          <label>Password</label>
+          <input
+            type="password"
+            name="password"
+            placeholder="••••••••"
+            value={form.password}
+            onChange={handleChange}
+          />
 
-        <button type="submit">Register</button>
-      </form>
+          <button type="submit">Register</button>
+        </form>
 
-      {message && <p>{message}</p>}
+        {message && (
+          <div className={`message ${isError ? "error" : "success"}`}>
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

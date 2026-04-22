@@ -5,6 +5,7 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState([]);
   const [projects, setProjects] = useState([]);
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const [teamForm, setTeamForm] = useState({
     name: "",
@@ -20,12 +21,17 @@ export default function TeamsPage() {
     loadTeams();
   }, []);
 
+  const showMessage = (text, error = false) => {
+    setMessage(text);
+    setIsError(error);
+  };
+
   const loadProjects = async () => {
     try {
       const response = await api.get("/projects");
       setProjects(response.data);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося завантажити проєкти");
+      showMessage(error.response?.data?.message || "Не вдалося завантажити проєкти", true);
     }
   };
 
@@ -34,7 +40,7 @@ export default function TeamsPage() {
       const response = await api.get("/teams");
       setTeams(response.data);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося завантажити команди");
+      showMessage(error.response?.data?.message || "Не вдалося завантажити команди", true);
     }
   };
 
@@ -50,7 +56,7 @@ export default function TeamsPage() {
     setMessage("");
 
     if (!teamForm.projectId) {
-      setMessage("Оберіть проєкт");
+      showMessage("Оберіть проєкт", true);
       return;
     }
 
@@ -62,7 +68,7 @@ export default function TeamsPage() {
         teamLeadUserId: teamForm.teamLeadUserId || null
       });
 
-      setMessage("Команду створено");
+      showMessage("Команду створено");
 
       setTeamForm({
         name: "",
@@ -73,7 +79,7 @@ export default function TeamsPage() {
 
       loadTeams();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося створити команду");
+      showMessage(error.response?.data?.message || "Не вдалося створити команду", true);
     }
   };
 
@@ -92,7 +98,7 @@ export default function TeamsPage() {
 
     const memberForm = memberForms[teamId] || {};
     if (!memberForm.userId) {
-      setMessage("Введіть User ID");
+      showMessage("Введіть User ID", true);
       return;
     }
 
@@ -102,7 +108,7 @@ export default function TeamsPage() {
         role: memberForm.role || "Member"
       });
 
-      setMessage("Учасника додано");
+      showMessage("Учасника додано");
 
       setMemberForms((prev) => ({
         ...prev,
@@ -114,7 +120,7 @@ export default function TeamsPage() {
 
       loadTeams();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Не вдалося додати учасника");
+      showMessage(error.response?.data?.message || "Не вдалося додати учасника", true);
     }
   };
 
@@ -122,101 +128,110 @@ export default function TeamsPage() {
     <div>
       <h1>Teams</h1>
 
-      <form
-        onSubmit={handleCreateTeam}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          maxWidth: "450px",
-          marginBottom: "20px"
-        }}
-      >
-        <input
-          type="text"
-          name="name"
-          placeholder="Team name"
-          value={teamForm.name}
-          onChange={handleTeamChange}
-        />
+      <div className="card">
+        <h2>Create team</h2>
+        <form onSubmit={handleCreateTeam} className="form form-wide">
+          <label>Name</label>
+          <input
+            type="text"
+            name="name"
+            placeholder="Team name"
+            value={teamForm.name}
+            onChange={handleTeamChange}
+          />
 
-        <input
-          type="text"
-          name="description"
-          placeholder="Team description"
-          value={teamForm.description}
-          onChange={handleTeamChange}
-        />
+          <label>Description</label>
+          <input
+            type="text"
+            name="description"
+            placeholder="Team description"
+            value={teamForm.description}
+            onChange={handleTeamChange}
+          />
 
-        <select
-          name="projectId"
-          value={teamForm.projectId}
-          onChange={handleTeamChange}
-        >
-          <option value="">Select project</option>
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.title}
-            </option>
-          ))}
-        </select>
+          <label>Project</label>
+          <select
+            name="projectId"
+            value={teamForm.projectId}
+            onChange={handleTeamChange}
+          >
+            <option value="">Select project</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
 
-        <input
-          type="text"
-          name="teamLeadUserId"
-          placeholder="Team lead user id (optional)"
-          value={teamForm.teamLeadUserId}
-          onChange={handleTeamChange}
-        />
+          <label>Team lead user id (optional)</label>
+          <input
+            type="text"
+            name="teamLeadUserId"
+            placeholder="UUID"
+            value={teamForm.teamLeadUserId}
+            onChange={handleTeamChange}
+          />
 
-        <button type="submit">Create team</button>
-      </form>
+          <button type="submit">Create team</button>
+        </form>
+      </div>
 
-      {message && <p>{message}</p>}
+      {message && (
+        <div className={`message ${isError ? "error" : "success"}`}>
+          {message}
+        </div>
+      )}
 
+      <h2>All teams</h2>
       {teams.length === 0 ? (
-        <p>Команд поки немає.</p>
+        <div className="empty-state">Команд поки немає.</div>
       ) : (
-        <ul>
+        <ul className="plain-list">
           {teams.map((team) => (
-            <li key={team.id} style={{ marginBottom: "20px" }}>
-              <div>
-                <strong>{team.name}</strong>
-                {team.description && <span> — {team.description}</span>}
-              </div>
+            <li key={team.id}>
+              <div className="card">
+                <div className="card-title">{team.name}</div>
+                {team.description && (
+                  <div className="card-meta">{team.description}</div>
+                )}
 
-              <div style={{ marginTop: "6px" }}>
-                Project: {team.project?.title || "—"}
-              </div>
+                <div className="detail-row">
+                  <span className="label">Project:</span>
+                  <span>{team.project?.title || "—"}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Members:</span>
+                  <span>
+                    <span className="badge">{team.memberships?.length || 0}</span>
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Team ID:</span>
+                  <code style={{ fontSize: 12 }}>{team.id}</code>
+                </div>
 
-              <div style={{ marginTop: "6px" }}>
-                Members: {team.memberships?.length || 0}
-              </div>
-
-              <div style={{ marginTop: "10px" }}>
-                <input
-                  type="text"
-                  placeholder="User ID"
-                  value={memberForms[team.id]?.userId || ""}
-                  onChange={(e) =>
-                    handleMemberInputChange(team.id, "userId", e.target.value)
-                  }
-                  style={{ marginRight: "10px" }}
-                />
-
-                <input
-                  type="text"
-                  placeholder="Role"
-                  value={memberForms[team.id]?.role || ""}
-                  onChange={(e) =>
-                    handleMemberInputChange(team.id, "role", e.target.value)
-                  }
-                  style={{ marginRight: "10px" }}
-                />
-
-                <button onClick={() => handleAddMember(team.id)}>
-                  Add member
-                </button>
+                <div className="comment-input-row" style={{ marginTop: 14 }}>
+                  <input
+                    type="text"
+                    placeholder="User ID (UUID)"
+                    value={memberForms[team.id]?.userId || ""}
+                    onChange={(e) =>
+                      handleMemberInputChange(team.id, "userId", e.target.value)
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Role (e.g. Member)"
+                    value={memberForms[team.id]?.role || ""}
+                    onChange={(e) =>
+                      handleMemberInputChange(team.id, "role", e.target.value)
+                    }
+                    style={{ maxWidth: 140 }}
+                  />
+                  <button className="btn-small" onClick={() => handleAddMember(team.id)}>
+                    Add member
+                  </button>
+                </div>
               </div>
             </li>
           ))}
