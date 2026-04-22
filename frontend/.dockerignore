@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+.git
+.gitignore
+*.log
+.env
+.env.local
+.env.development
+.DS_Store
