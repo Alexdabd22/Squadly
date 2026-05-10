@@ -5,6 +5,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import TasksPage from "./pages/TasksPage";
 import TeamsPage from "./pages/TeamsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 function Navigation() {
   const location = useLocation();
@@ -68,6 +69,7 @@ function Navigation() {
       <Link to="/projects">Projects</Link>
       <Link to="/tasks">Tasks</Link>
       <Link to="/teams">Teams</Link>
+      <Link to="/profile">Profile</Link>
       <span className="spacer"></span>
       {token && (
         <>
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="*" element={<LoginPage />} />
         </Routes>
       </div>
