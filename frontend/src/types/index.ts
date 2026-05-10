@@ -22,9 +22,13 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  token: string
-  userId: string
-  user?: User
+  accessToken: string
+  expiresAt: string
+  user: {
+    id: string
+    email: string
+    fullName: string
+  }
 }
 
 // Project types
