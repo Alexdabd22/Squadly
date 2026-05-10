@@ -5,6 +5,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [users, setUsers] = useState([]);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [commentTexts, setCommentTexts] = useState({});
@@ -33,7 +34,8 @@ export default function TasksPage() {
     loadProjects();
     loadTeams();
     loadTasks();
-  }, []);
+    loadUsers();
+}, []);
 
   const showMessage = (text, error = false) => {
     setMessage(text);
@@ -57,6 +59,14 @@ export default function TasksPage() {
       showMessage(error.response?.data?.message || "Не вдалося завантажити команди", true);
     }
   };
+  const loadUsers = async () => {
+  try {
+    const response = await api.get("/users");
+    setUsers(response.data);
+  } catch (error) {
+    showMessage(error.response?.data?.message || "Не вдалося завантажити користувачів", true);
+  }
+};
 
   const loadTasks = async () => {
     try {
@@ -301,14 +311,15 @@ export default function TasksPage() {
             ))}
           </select>
 
-          <label>Assignee user id (optional)</label>
-          <input
-            type="text"
-            name="assigneeUserId"
-            placeholder="UUID"
-            value={form.assigneeUserId}
-            onChange={handleChange}
-          />
+          <label>Assignee (optional)</label>
+          <select name="assigneeUserId" value={form.assigneeUserId} onChange={handleChange}>
+            <option value="">Select user</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.fullName} ({user.email})
+              </option>
+             ))}
+        </select>
 
           <button type="submit">Create task</button>
         </form>
@@ -387,15 +398,20 @@ export default function TasksPage() {
                       ))}
                     </select>
 
-                    <label>Assignee user id</label>
-                    <input
-                      type="text"
+                    <label>Assignee</label>
+                    <select
                       name="assigneeUserId"
                       className="field"
-                      placeholder="UUID"
                       value={editForm.assigneeUserId}
                       onChange={handleEditChange}
-                    />
+                    >
+                      <option value="">Select user</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.fullName} ({user.email})
+                        </option>
+                      ))}
+                    </select>
 
                     <div className="btn-group" style={{ marginTop: 8 }}>
                       <button onClick={() => handleUpdateTask(task.id)}>Save</button>

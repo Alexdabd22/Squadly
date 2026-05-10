@@ -4,6 +4,7 @@ import api from "../services/api";
 export default function TeamsPage() {
   const [teams, setTeams] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
@@ -19,7 +20,17 @@ export default function TeamsPage() {
   useEffect(() => {
     loadProjects();
     loadTeams();
+    loadUsers(); 
   }, []);
+
+  const loadUsers = async () => {
+    try {
+      const response = await api.get("/users");
+      setUsers(response.data);
+    } catch (error) {
+      showMessage(error.response?.data?.message || "Не вдалося завантажити користувачів", true);
+    }
+  };
 
   const showMessage = (text, error = false) => {
     setMessage(text);
@@ -163,14 +174,19 @@ export default function TeamsPage() {
             ))}
           </select>
 
-          <label>Team lead user id (optional)</label>
-          <input
-            type="text"
+          <label>Team lead (optional)</label>
+          <select
             name="teamLeadUserId"
-            placeholder="UUID"
             value={teamForm.teamLeadUserId}
             onChange={handleTeamChange}
-          />
+          >
+            <option value="">Select team lead</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.fullName} ({user.email})
+              </option>
+            ))}
+          </select>
 
           <button type="submit">Create team</button>
         </form>
@@ -211,14 +227,21 @@ export default function TeamsPage() {
                 </div>
 
                 <div className="comment-input-row" style={{ marginTop: 14 }}>
-                  <input
-                    type="text"
-                    placeholder="User ID (UUID)"
+                  <select
                     value={memberForms[team.id]?.userId || ""}
                     onChange={(e) =>
                       handleMemberInputChange(team.id, "userId", e.target.value)
                     }
-                  />
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select user</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.fullName} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+
                   <input
                     type="text"
                     placeholder="Role (e.g. Member)"
