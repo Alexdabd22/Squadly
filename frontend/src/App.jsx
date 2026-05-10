@@ -1,18 +1,17 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import TasksPage from "./pages/TasksPage";
-import TeamsPage from "./pages/TeamsPage";
-import ProfilePage from "./pages/ProfilePage";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import ProjectsPage from "./pages/projects/ProjectsPage";
+import TasksPage from "./pages/tasks/TasksPage";
+import TeamsPage from "./pages/teams/TeamsPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [userId, setUserId] = useState(localStorage.getItem("userId"));
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -43,46 +42,28 @@ function Navigation() {
     navigate("/login");
   };
 
-  const handleCopyUserId = async () => {
-    if (!userId) return;
-    try {
-      await navigator.clipboard.writeText(userId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch (err) {
-      const input = document.createElement("input");
-      input.value = userId;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }
-  };
-
   return (
-    <nav className="app-nav">
-      <span className="brand">Squadly</span>
-      <Link to="/login">Login</Link>
-      <Link to="/register">Register</Link>
-      <Link to="/projects">Projects</Link>
-      <Link to="/tasks">Tasks</Link>
-      <Link to="/teams">Teams</Link>
-      <Link to="/profile">Profile</Link>
-      <span className="spacer"></span>
-      {token && (
+    <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
+      <span className="font-bold text-primary-600 text-lg">Squadly</span>
+      <Link to="/projects" className="text-sm text-slate-700 hover:text-primary-600">Projects</Link>
+      <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Tasks</Link>
+      <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Teams</Link>
+      <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Profile</Link>
+      <span className="flex-1"></span>
+      {token ? (
         <>
+          <span className="text-xs text-slate-500 font-mono">{userId?.substring(0, 8)}...</span>
           <button
-            className="btn-small btn-secondary user-id-btn"
-            onClick={handleCopyUserId}
-            title={`userId: ${userId}`}
+            onClick={handleLogout}
+            className="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium"
           >
-            userId: {userId ? userId.substring(0, 8) + "..." : "—"}
-          </button>
-          <button className="btn-small btn-secondary" onClick={handleLogout} style={{ marginLeft: 8 }}>
             Logout
           </button>
+        </>
+      ) : (
+        <>
+          <Link to="/login" className="text-sm text-slate-700 hover:text-primary-600">Login</Link>
+          <Link to="/register" className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg font-medium">Register</Link>
         </>
       )}
     </nav>
@@ -92,19 +73,16 @@ function Navigation() {
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="app-container">
-        <Navigation />
-
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/tasks" element={<TasksPage />} />
-          <Route path="/teams" element={<TeamsPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="*" element={<LoginPage />} />
-        </Routes>
-      </div>
+      <Navigation />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/teams" element={<TeamsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<LoginPage />} />
+      </Routes>
     </BrowserRouter>
   );
 }
