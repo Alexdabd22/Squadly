@@ -121,3 +121,15 @@ export interface Comment {
   authorUserId: string
   createdAt: string
 }
+// Notification types
+export interface Notification {
+  id: string
+  type: string
+  title: string
+  message: string
+  isRead: boolean
+  createdAt: string
+  readAt?: string
+  relatedId?: string
+  relatedType?: string
+}

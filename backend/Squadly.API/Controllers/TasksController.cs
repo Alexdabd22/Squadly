@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Squadly.Application.DTOs.Tasks;
 using Squadly.Domain.Entities;
 using Squadly.Infrastructure.Persistence;
+using Squadly.Infrastructure.Services;
 
 namespace Squadly.API.Controllers;
 
@@ -11,10 +12,12 @@ namespace Squadly.API.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly INotificationService _notifications;
 
-    public TasksController(AppDbContext db)
+    public TasksController(AppDbContext db, INotificationService notifications)
     {
         _db = db;
+        _notifications = notifications;
     }
 
     [HttpGet]
@@ -76,14 +79,27 @@ public class TasksController : ControllerBase
         _db.Tasks.Add(task);
         await _db.SaveChangesAsync();
 
+        // Сповіщення виконавцю
+        if (task.AssigneeUserId.HasValue)
+        {
+            await _notifications.CreateAsync(
+                userId: task.AssigneeUserId.Value,
+                type: "TaskAssigned",
+                title: "Вам призначено задачу",
+                message: $"Вас призначено виконавцем задачі «{task.Title}»",
+                relatedId: task.Id,
+                relatedType: "Task"
+            );
+        }
+
         return Ok(task);
     }
 
     [HttpPost("{taskId}/comments")]
     public async Task<IActionResult> AddComment(Guid taskId, [FromBody] AddCommentDto dto)
     {
-        var taskExists = await _db.Tasks.AnyAsync(t => t.Id == taskId);
-        if (!taskExists)
+        var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+        if (task == null)
             return NotFound(new { message = "Завдання не знайдено" });
 
         var userExists = await _db.Users.AnyAsync(u => u.Id == dto.AuthorUserId);
@@ -100,6 +116,21 @@ public class TasksController : ControllerBase
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync();
         await _db.Entry(comment).Reference(c => c.Author).LoadAsync();
+
+        if (task.AssigneeUserId.HasValue && task.AssigneeUserId.Value != dto.AuthorUserId)
+        {
+            var author = await _db.Users.FirstOrDefaultAsync(u => u.Id == dto.AuthorUserId);
+            var authorName = author != null ? $"{author.FirstName} {author.LastName}" : "Користувач";
+
+            await _notifications.CreateAsync(
+                userId: task.AssigneeUserId.Value,
+                type: "TaskCommented",
+                title: "Новий коментар",
+                message: $"{authorName} додав(ла) коментар до задачі «{task.Title}»",
+                relatedId: task.Id,
+                relatedType: "Task"
+            );
+        }
 
         return Ok(comment);
     }
@@ -140,6 +171,9 @@ public class TasksController : ControllerBase
                 return BadRequest(new { message = "Виконавця не знайдено" });
         }
 
+        var previousAssigneeId = task.AssigneeUserId;
+        var previousStatus = task.Status;
+
         task.Title = dto.Title;
         task.Description = dto.Description;
         task.Status = dto.Status;
@@ -150,6 +184,38 @@ public class TasksController : ControllerBase
         task.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+
+        if (dto.AssigneeUserId.HasValue && dto.AssigneeUserId != previousAssigneeId)
+        {
+            await _notifications.CreateAsync(
+                userId: dto.AssigneeUserId.Value,
+                type: "TaskAssigned",
+                title: "Вам призначено задачу",
+                message: $"Вас призначено виконавцем задачі «{task.Title}»",
+                relatedId: task.Id,
+                relatedType: "Task"
+            );
+        }
+
+        if (previousStatus != dto.Status && task.AssigneeUserId.HasValue)
+        {
+            var statusLabel = dto.Status switch
+            {
+                "ToDo" => "До виконання",
+                "InProgress" => "В роботі",
+                "Done" => "Виконано",
+                _ => dto.Status
+            };
+
+            await _notifications.CreateAsync(
+                userId: task.AssigneeUserId.Value,
+                type: "TaskStatusChanged",
+                title: "Статус задачі змінено",
+                message: $"Статус задачі «{task.Title}» змінено на «{statusLabel}»",
+                relatedId: task.Id,
+                relatedType: "Task"
+            );
+        }
 
         return Ok(task);
     }

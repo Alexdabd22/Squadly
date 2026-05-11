@@ -7,6 +7,8 @@ import ProjectsPage from "./pages/projects/ProjectsPage";
 import TasksPage from "./pages/tasks/TasksPage";
 import TeamsPage from "./pages/teams/TeamsPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
+import NotificationBell from "./components/layout/NotificationBell";
 
 function Navigation() {
   const location = useLocation();
@@ -58,6 +60,7 @@ function Navigation() {
       <span className="flex-1"></span>
       {token ? (
         <>
+          <NotificationBell />
           <span className="text-xs text-slate-500 font-mono">{userId?.substring(0, 8)}...</span>
           <button
             onClick={handleLogout}
@@ -88,6 +91,7 @@ export default function App() {
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>

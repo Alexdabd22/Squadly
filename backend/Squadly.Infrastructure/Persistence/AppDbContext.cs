@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -142,5 +143,24 @@ public class AppDbContext : DbContext
                 .HasForeignKey(c => c.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+        
+            modelBuilder.Entity<Notification>(entity =>
+    {
+        entity.ToTable("Notifications");
+        entity.HasKey(n => n.Id);
+
+        entity.Property(n => n.Type).IsRequired().HasMaxLength(50);
+        entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
+        entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
+        entity.Property(n => n.RelatedType).HasMaxLength(50);
+
+        entity.HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasIndex(n => n.UserId);
+        entity.HasIndex(n => new { n.UserId, n.IsRead });
+});
     }
 }
