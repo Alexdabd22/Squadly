@@ -1,6 +1,9 @@
 import { useEffect, useState, ChangeEvent, FormEvent } from 'react'
 import api from '../../api/client'
 import type { TaskItem, TaskStatus, TaskPriority, Project, Team, User } from '../../types'
+import { formatRelativeTime } from '../../utils/date'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
+import { useConfirm } from '../../hooks/useConfirm'
 
 interface TaskForm {
   title: string
@@ -40,14 +43,12 @@ const emptyEditForm: EditForm = {
   assigneeUserId: '',
 }
 
-// Переклади статусів
 const statusLabels: Record<TaskStatus, string> = {
   ToDo: 'До виконання',
   InProgress: 'В роботі',
   Done: 'Виконано',
 }
 
-// Переклади пріоритетів
 const priorityLabels: Record<TaskPriority, string> = {
   Low: 'Низький',
   Medium: 'Середній',
@@ -65,6 +66,8 @@ export default function TasksPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [form, setForm] = useState<TaskForm>(emptyCreateForm)
   const [editForm, setEditForm] = useState<EditForm>(emptyEditForm)
+
+  const { confirm, confirmProps } = useConfirm()
 
   useEffect(() => {
     loadProjects()
@@ -151,7 +154,14 @@ export default function TasksPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Видалити цю задачу?')) return
+    const ok = await confirm({
+      title: 'Видалення задачі',
+      message: 'Ви впевнені, що хочете видалити цю задачу? Цю дію не можна скасувати.',
+      confirmText: 'Видалити',
+      confirmVariant: 'danger',
+    })
+    if (!ok) return
+
     setMessage('')
     try {
       await api.delete(`/tasks/${id}`)
@@ -257,6 +267,25 @@ export default function TasksPage() {
       loadTasks()
     } catch (error: any) {
       showMessage(error.response?.data?.message || 'Не вдалося додати коментар', true)
+    }
+  }
+
+  const handleDeleteComment = async (taskId: string, commentId: string) => {
+    const ok = await confirm({
+      title: 'Видалення коментаря',
+      message: 'Ви впевнені, що хочете видалити цей коментар?',
+      confirmText: 'Видалити',
+      confirmVariant: 'danger',
+    })
+    if (!ok) return
+
+    setMessage('')
+    try {
+      await api.delete(`/tasks/${taskId}/comments/${commentId}`)
+      showMessage('Коментар видалено')
+      loadTasks()
+    } catch (error: any) {
+      showMessage(error.response?.data?.message || 'Не вдалося видалити коментар', true)
     }
   }
 
@@ -402,7 +431,6 @@ export default function TasksPage() {
         </form>
       </div>
 
-      {/* Message */}
       {message && (
         <div
           className={`rounded-lg px-3 py-2 mb-4 text-sm ${
@@ -426,7 +454,6 @@ export default function TasksPage() {
           {tasks.map((task) => (
             <div key={task.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
               {editingTaskId === task.id ? (
-                /* Edit mode */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Назва</label>
@@ -528,7 +555,6 @@ export default function TasksPage() {
                   </div>
                 </div>
               ) : (
-                /* View mode */
                 <>
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-slate-900">{task.title}</h3>
@@ -593,14 +619,45 @@ export default function TasksPage() {
                   </div>
 
                   <div className="border-t border-slate-100 pt-3">
-                    <p className="text-sm font-semibold text-slate-700 mb-2">Коментарі:</p>
+                    <p className="text-sm font-semibold text-slate-700 mb-2">
+                      Коментарі ({task.comments?.length || 0}):
+                    </p>
                     {task.comments && task.comments.length > 0 ? (
-                      <ul className="space-y-1">
-                        {task.comments.map((comment) => (
-                          <li key={comment.id} className="text-sm text-slate-600 bg-slate-50 rounded px-2 py-1">
-                            {comment.content}
-                          </li>
-                        ))}
+                      <ul className="space-y-2">
+                        {task.comments.map((comment) => {
+                          const currentUserId = localStorage.getItem('userId')
+                          const isMyComment = comment.authorUserId === currentUserId
+
+                          return (
+                            <li key={comment.id} className="bg-slate-50 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-semibold">
+                                    {(comment.author?.firstName?.[0] || '?').toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {comment.author?.fullName || 'Невідомий користувач'}
+                                      {isMyComment && <span className="text-xs text-slate-400 ml-1">(ви)</span>}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                      {formatRelativeTime(comment.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                                {isMyComment && (
+                                  <button
+                                    onClick={() => handleDeleteComment(task.id, comment.id)}
+                                    className="text-xs text-red-600 hover:text-red-700 font-medium"
+                                  >
+                                    Видалити
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-700 ml-9">{comment.content}</p>
+                            </li>
+                          )
+                        })}
                       </ul>
                     ) : (
                       <p className="text-sm text-slate-400">Коментарів поки немає.</p>
@@ -612,6 +669,8 @@ export default function TasksPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   )
 }

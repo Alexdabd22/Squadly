@@ -66,7 +66,15 @@ export interface TaskItem {
 export interface TaskComment {
   id: string
   content: string
+  taskItemId: string
   authorUserId: string
+  author?: {
+    id: string
+    email: string
+    firstName: string
+    lastName: string
+    fullName: string
+  }
   createdAt: string
 }
 

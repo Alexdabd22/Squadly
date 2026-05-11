@@ -24,8 +24,18 @@ public class TasksController : ControllerBase
             .Include(t => t.Project)
             .Include(t => t.Team)
             .Include(t => t.Assignee)
-            .Include(t => t.Comments)
+            .Include(t => t.Comments!)
+                .ThenInclude(c => c.Author)
+            .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
+
+        foreach (var task in tasks)
+        {
+            if (task.Comments != null)
+            {
+                task.Comments = task.Comments.OrderBy(c => c.CreatedAt).ToList();
+            }
+        }
 
         return Ok(tasks);
     }
@@ -89,9 +99,26 @@ public class TasksController : ControllerBase
 
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync();
+        await _db.Entry(comment).Reference(c => c.Author).LoadAsync();
 
         return Ok(comment);
     }
+
+    [HttpDelete("{taskId}/comments/{commentId}")]
+    public async Task<IActionResult> DeleteComment(Guid taskId, Guid commentId)
+    {
+        var comment = await _db.Comments
+            .FirstOrDefaultAsync(c => c.Id == commentId && c.TaskItemId == taskId);
+
+        if (comment == null)
+            return NotFound(new { message = "Коментар не знайдено" });
+
+        _db.Comments.Remove(comment);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Коментар видалено" });
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskDto dto)
     {
@@ -126,6 +153,7 @@ public class TasksController : ControllerBase
 
         return Ok(task);
     }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {

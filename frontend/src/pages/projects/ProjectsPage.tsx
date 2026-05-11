@@ -1,6 +1,8 @@
 import { useState, useEffect, FormEvent } from 'react'
 import api from '../../api/client'
 import type { Project, CreateProjectRequest } from '../../types'
+import ConfirmDialog from '../../components/common/ConfirmDialog'
+import { useConfirm } from '../../hooks/useConfirm'
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -9,6 +11,8 @@ export default function ProjectsPage() {
   const [editForm, setEditForm] = useState<CreateProjectRequest>({ title: '', description: '' })
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
+
+  const { confirm, confirmProps } = useConfirm()
 
   useEffect(() => {
     loadProjects()
@@ -19,7 +23,7 @@ export default function ProjectsPage() {
       const response = await api.get<Project[]>('/projects')
       setProjects(response.data)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load projects')
+      setError(err.response?.data?.message || 'Не вдалося завантажити проєкти')
     }
   }
 
@@ -32,19 +36,26 @@ export default function ProjectsPage() {
       setForm({ title: '', description: '' })
       loadProjects()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Помилка створення ')
+      setError(err.response?.data?.message || 'Помилка створення')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Видалити цей проєкт?')) return
+    const ok = await confirm({
+      title: 'Видалення проєкту',
+      message: 'Ви впевнені, що хочете видалити цей проєкт? Цю дію не можна скасувати.',
+      confirmText: 'Видалити',
+      confirmVariant: 'danger',
+    })
+    if (!ok) return
+
     try {
       await api.delete(`/projects/${id}`)
       loadProjects()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete')
+      setError(err.response?.data?.message || 'Не вдалося видалити')
     }
   }
 
@@ -59,13 +70,13 @@ export default function ProjectsPage() {
       setEditingId(null)
       loadProjects()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update')
+      setError(err.response?.data?.message || 'Не вдалося оновити')
     }
   }
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Projects</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Проєкти</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-4 text-sm">
@@ -73,7 +84,10 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <form onSubmit={handleCreate} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-3">
+      <form
+        onSubmit={handleCreate}
+        className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-3"
+      >
         <h2 className="font-semibold text-slate-900">Створити проєкт</h2>
         <input
           type="text"
@@ -101,10 +115,15 @@ export default function ProjectsPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects.length === 0 && (
-          <p className="col-span-full text-center text-slate-500 py-12">Проєктів поки немає. Створіть перший вище.</p>
+          <p className="col-span-full text-center text-slate-500 py-12">
+            Проєктів поки немає. Створіть перший вище.
+          </p>
         )}
         {projects.map((project) => (
-          <div key={project.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <div
+            key={project.id}
+            className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5"
+          >
             {editingId === project.id ? (
               <div className="space-y-3">
                 <input
@@ -124,7 +143,7 @@ export default function ProjectsPage() {
                     onClick={() => handleUpdate(project.id)}
                     className="flex-1 bg-primary-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary-700"
                   >
-                     Зберегти
+                    Зберегти
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
@@ -137,7 +156,9 @@ export default function ProjectsPage() {
             ) : (
               <>
                 <h3 className="font-semibold text-slate-900 mb-1">{project.title}</h3>
-                {project.description && <p className="text-sm text-slate-600 mb-3">{project.description}</p>}
+                {project.description && (
+                  <p className="text-sm text-slate-600 mb-3">{project.description}</p>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => startEdit(project)}
@@ -157,6 +178,8 @@ export default function ProjectsPage() {
           </div>
         ))}
       </div>
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   )
 }
