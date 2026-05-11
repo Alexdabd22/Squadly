@@ -22,7 +22,7 @@ export default function LoginPage() {
       window.dispatchEvent(new Event('authChanged'))
       navigate('/projects')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed')
+      setError(err.response?.data?.message || 'Помилка входу')
     } finally {
       setLoading(false)
     }
@@ -32,8 +32,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Welcome to Squadly</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-slate-900">Ласкаво просимо до Squadly</h1>
+          <p className="text-sm text-slate-500 mt-1">Увійдіть у свій акаунт</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,13 +70,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Завантаження...' : 'Увійти'}
           </button>
 
           <p className="text-center text-sm text-slate-500">
-            No account?{' '}
+            Немає акаунту?{' '}
             <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-              Register
+              Зареєструватись
             </Link>
           </p>
         </form>

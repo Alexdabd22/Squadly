@@ -45,10 +45,10 @@ function Navigation() {
   return (
     <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
       <span className="font-bold text-primary-600 text-lg">Squadly</span>
-      <Link to="/projects" className="text-sm text-slate-700 hover:text-primary-600">Projects</Link>
-      <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Tasks</Link>
-      <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Teams</Link>
-      <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Profile</Link>
+      <Link to="/projects" className="text-sm text-slate-700 hover:text-primary-600">Проєкти</Link>
+      <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Задачі</Link>
+      <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Команди</Link>
+      <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Профіль</Link>
       <span className="flex-1"></span>
       {token ? (
         <>
@@ -57,13 +57,13 @@ function Navigation() {
             onClick={handleLogout}
             className="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium"
           >
-            Logout
+            Вийти
           </button>
         </>
       ) : (
         <>
-          <Link to="/login" className="text-sm text-slate-700 hover:text-primary-600">Login</Link>
-          <Link to="/register" className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg font-medium">Register</Link>
+          <Link to="/login" className="text-sm text-slate-700 hover:text-primary-600">Вхід</Link>
+          <Link to="/register" className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg font-medium">Реєстрація</Link>
         </>
       )}
     </nav>

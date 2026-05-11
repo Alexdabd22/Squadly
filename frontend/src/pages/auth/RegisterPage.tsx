@@ -33,8 +33,8 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Create account</h1>
-          <p className="text-sm text-slate-500 mt-1">Join Squadly today</p>
+          <h1 className="text-2xl font-bold text-slate-900">Створити акаунт</h1>
+          <p className="text-sm text-slate-500 mt-1">Приєднуйся до Squadly</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -46,7 +46,7 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">First name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Ім'я</label>
               <input
                 type="text"
                 value={form.firstName}
@@ -56,7 +56,7 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Last name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Прізвище</label>
               <input
                 type="text"
                 value={form.lastName}
@@ -94,13 +94,13 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Create account'}
+            {loading ? 'Створення...' : 'Зареєструватись'}
           </button>
 
           <p className="text-center text-sm text-slate-500">
-            Already have an account?{' '}
+            Вже маєш акаунт?{' '}
             <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-              Sign in
+              Увійти
             </Link>
           </p>
         </form>

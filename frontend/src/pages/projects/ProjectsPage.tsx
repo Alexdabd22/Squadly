@@ -32,7 +32,7 @@ export default function ProjectsPage() {
       setForm({ title: '', description: '' })
       loadProjects()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create')
+      setError(err.response?.data?.message || 'Помилка створення ')
     } finally {
       setLoading(false)
     }
@@ -74,17 +74,17 @@ export default function ProjectsPage() {
       )}
 
       <form onSubmit={handleCreate} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-3">
-        <h2 className="font-semibold text-slate-900">Create project</h2>
+        <h2 className="font-semibold text-slate-900">Створити проєкт</h2>
         <input
           type="text"
-          placeholder="Project title"
+          placeholder="Назва проєкту"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           required
         />
         <textarea
-          placeholder="Description"
+          placeholder="Опис"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           rows={3}
@@ -95,13 +95,13 @@ export default function ProjectsPage() {
           disabled={loading}
           className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create Project'}
+          {loading ? 'Створення...' : 'Створити'}
         </button>
       </form>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects.length === 0 && (
-          <p className="col-span-full text-center text-slate-500 py-12">No projects yet. Create your first one above.</p>
+          <p className="col-span-full text-center text-slate-500 py-12">Проєктів поки немає. Створіть перший вище.</p>
         )}
         {projects.map((project) => (
           <div key={project.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
@@ -124,13 +124,13 @@ export default function ProjectsPage() {
                     onClick={() => handleUpdate(project.id)}
                     className="flex-1 bg-primary-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary-700"
                   >
-                    Save
+                     Зберегти
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
                     className="flex-1 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-200"
                   >
-                    Cancel
+                    Скасувати
                   </button>
                 </div>
               </div>
@@ -143,13 +143,13 @@ export default function ProjectsPage() {
                     onClick={() => startEdit(project)}
                     className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                   >
-                    Edit
+                    Редагувати
                   </button>
                   <button
                     onClick={() => handleDelete(project.id)}
                     className="text-sm text-red-600 hover:text-red-700 font-medium"
                   >
-                    Delete
+                    Видалити
                   </button>
                 </div>
               </>

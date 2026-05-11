@@ -55,22 +55,39 @@ export interface TaskItem {
   description?: string
   status: TaskStatus
   priority: TaskPriority
-  projectId: string
-  teamId?: string
-  assigneeUserId?: string
-  createdAt: string
+  project?: { id: string; title: string }
+  team?: { id: string; name: string }
+  assignee?: { id: string; fullName: string; email: string }
+  comments?: TaskComment[]
   dueDate?: string
+  createdAt: string
+}
+
+export interface TaskComment {
+  id: string
+  content: string
+  authorUserId: string
+  createdAt: string
 }
 
 export interface CreateTaskRequest {
   title: string
-  description?: string
-  status?: TaskStatus
-  priority?: TaskPriority
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
   projectId: string
-  teamId?: string
-  assigneeUserId?: string
-  dueDate?: string
+  teamId: string | null
+  assigneeUserId: string | null
+}
+
+export interface UpdateTaskRequest {
+  title: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  teamId: string | null
+  assigneeUserId: string | null
+  dueDate: string | null
 }
 
 // Team types

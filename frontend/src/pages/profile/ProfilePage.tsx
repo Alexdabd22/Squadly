@@ -19,7 +19,7 @@ export default function ProfilePage() {
       setUser(response.data)
       setForm({ firstName: response.data.firstName, lastName: response.data.lastName })
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load profile')
+      setError(err.response?.data?.message || 'Не вдалося завантажити профіль')
     }
   }
 
@@ -31,17 +31,17 @@ export default function ProfilePage() {
       const response = await api.put<User>('/users/me', form)
       setUser(response.data)
       setEditing(false)
-      setSuccess('Profile updated')
+      setSuccess('Профіль оновлено')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update')
+      setError(err.response?.data?.message || 'Не вдалося оновити')
     }
   }
 
-  if (!user) return <div className="p-6">Loading...</div>
+  if (!user) return <div className="p-6">Завантаження...</div>
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Profile</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">Профіль</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-4 text-sm">
@@ -58,7 +58,7 @@ export default function ProfilePage() {
         {editing ? (
           <form onSubmit={handleUpdate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">First name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">ім'я</label>
               <input
                 type="text"
                 value={form.firstName}
@@ -68,7 +68,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Last name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Прізвище</label>
               <input
                 type="text"
                 value={form.lastName}
@@ -79,17 +79,17 @@ export default function ProfilePage() {
             </div>
             <div className="flex gap-2">
               <button type="submit" className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700">
-                Save
+                Зберегти
               </button>
               <button type="button" onClick={() => setEditing(false)} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-medium hover:bg-slate-200">
-                Cancel
+                Скасувати
               </button>
             </div>
           </form>
         ) : (
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-slate-500">Name</p>
+              <p className="text-sm text-slate-500">Ім'я</p>
               <p className="font-medium text-slate-900">{user.fullName}</p>
             </div>
             <div>
@@ -97,14 +97,14 @@ export default function ProfilePage() {
               <p className="font-medium text-slate-900">{user.email}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">User ID</p>
+              <p className="text-sm text-slate-500">ID користувача</p>
               <p className="font-mono text-sm text-slate-700">{user.id}</p>
             </div>
             <button
               onClick={() => setEditing(true)}
               className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 mt-2"
             >
-              Edit Profile
+            Редагувати профіль
             </button>
           </div>
         )}
