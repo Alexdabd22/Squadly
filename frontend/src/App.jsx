@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "re
 import { useState, useEffect } from "react";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import TasksPage from "./pages/tasks/TasksPage";
 import TeamsPage from "./pages/teams/TeamsPage";
@@ -45,10 +46,15 @@ function Navigation() {
   return (
     <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
       <span className="font-bold text-primary-600 text-lg">Squadly</span>
-      <Link to="/projects" className="text-sm text-slate-700 hover:text-primary-600">Проєкти</Link>
-      <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Задачі</Link>
-      <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Команди</Link>
-      <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Профіль</Link>
+      {token && (
+        <>
+          <Link to="/dashboard" className="text-sm text-slate-700 hover:text-primary-600">Головна</Link>
+          <Link to="/projects" className="text-sm text-slate-700 hover:text-primary-600">Проєкти</Link>
+          <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Задачі</Link>
+          <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Команди</Link>
+          <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Профіль</Link>
+        </>
+      )}
       <span className="flex-1"></span>
       {token ? (
         <>
@@ -77,6 +83,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/teams" element={<TeamsPage />} />

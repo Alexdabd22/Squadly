@@ -20,7 +20,7 @@ export default function LoginPage() {
       localStorage.setItem('token', response.data.accessToken)
       localStorage.setItem('userId', response.data.user.id)
       window.dispatchEvent(new Event('authChanged'))
-      navigate('/projects')
+      navigate('/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Помилка входу')
     } finally {
