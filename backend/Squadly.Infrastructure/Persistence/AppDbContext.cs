@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Rating> Ratings => Set<Rating>(); 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -161,6 +162,22 @@ public class AppDbContext : DbContext
 
         entity.HasIndex(n => n.UserId);
         entity.HasIndex(n => new { n.UserId, n.IsRead });
+
+        modelBuilder.Entity<Rating>(entity =>
+        {
+            entity.ToTable("Ratings");
+            entity.HasKey(r => r.Id);
+
+            entity.Property(r => r.Reason).IsRequired().HasMaxLength(100);
+            entity.Property(r => r.RelatedType).HasMaxLength(50);
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(r => r.UserId);
+        });
 });
     }
 }

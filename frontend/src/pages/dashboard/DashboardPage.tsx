@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/client'
 import type { Project, Team, TaskItem, User } from '../../types'
-
+import type { LeaderboardEntry } from '../../types'
+import trophyIcon from '../../assets/trophy.png'
+import goldMedal from '../../assets/icons/medal-gold.png'
+import silverMedal from '../../assets/icons/medal-silver.png'
+import bronzeMedal from '../../assets/icons/medal-bronze.png'
 interface Stats {
   projects: number
   teams: number
@@ -25,6 +29,7 @@ export default function DashboardPage() {
   })
   const [recentTasks, setRecentTasks] = useState<TaskItem[]>([])
   const [user, setUser] = useState<User | null>(null)
+  const [topUsers, setTopUsers] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
 
@@ -42,7 +47,12 @@ export default function DashboardPage() {
         api.get<TaskItem[]>('/tasks'),
         api.get<User>('/users/me'),
       ])
-
+    try {
+        const lbRes = await api.get<LeaderboardEntry[]>('/ratings/leaderboard')
+        setTopUsers(lbRes.data.slice(0, 3))
+        } catch {
+        // ok if empty
+    }      
       const tasks = tasksRes.data
       const tasksToDo = tasks.filter((t) => t.status === 'ToDo').length
       const tasksInProgress = tasks.filter((t) => t.status === 'InProgress').length
@@ -171,7 +181,36 @@ export default function DashboardPage() {
           </p>
         </div>
       )}
-
+        {/* Top 3 */}
+    {topUsers.length > 0 && (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+       <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+        <img src={trophyIcon} alt="" className="w-5 h-5" />
+        Топ-3 лідери
+        </h2>
+        <Link to="/leaderboard" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            Весь рейтинг →
+        </Link>
+        </div>
+        <div className="space-y-2">
+        {topUsers.map((entry) => (
+            <div key={entry.userId} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-slate-50">
+            <img
+            src={entry.rank === 1 ? goldMedal : entry.rank === 2 ? silverMedal : bronzeMedal}
+            alt={`${entry.rank} місце`}
+            className="w-7 h-7"
+            />
+            <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-sm font-semibold">
+                {entry.fullName[0]?.toUpperCase()}
+            </div>
+            <p className="flex-1 text-sm font-medium text-slate-900 truncate">{entry.fullName}</p>
+            <p className="text-sm font-bold text-primary-600">{entry.totalPoints} балів</p>
+            </div>
+        ))}
+        </div>
+    </div>
+    )}
       {/* Останні задачі */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5">
         <div className="flex items-center justify-between mb-4">

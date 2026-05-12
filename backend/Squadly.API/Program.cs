@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<Squadly.Infrastructure.Services.INotificationService, Squadly.Infrastructure.Services.NotificationService>();
+builder.Services.AddScoped<Squadly.Infrastructure.Services.IRatingService, Squadly.Infrastructure.Services.RatingService>();
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret missing");
 

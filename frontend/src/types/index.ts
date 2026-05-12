@@ -133,3 +133,23 @@ export interface Notification {
   relatedId?: string
   relatedType?: string
 }
+// Rating types
+export interface LeaderboardEntry {
+  userId: string
+  fullName: string
+  email: string
+  totalPoints: number
+  rank: number
+  tasksCompleted: number
+}
+
+export interface UserStats {
+  userId: string
+  totalPoints: number
+  rank: number
+  tasksCompleted: number
+  tasksCompletedHigh: number
+  tasksCompletedMedium: number
+  tasksCompletedLow: number
+  commentsCount: number
+}

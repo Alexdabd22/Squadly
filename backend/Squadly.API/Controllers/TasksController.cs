@@ -13,11 +13,13 @@ public class TasksController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly INotificationService _notifications;
+    private readonly IRatingService _ratings;
 
-    public TasksController(AppDbContext db, INotificationService notifications)
+    public TasksController(AppDbContext db, INotificationService notifications, IRatingService ratings)
     {
         _db = db;
         _notifications = notifications;
+        _ratings = ratings;
     }
 
     [HttpGet]
@@ -131,7 +133,8 @@ public class TasksController : ControllerBase
                 relatedType: "Task"
             );
         }
-
+        await _ratings.AwardForCommentAsync(dto.AuthorUserId, comment.Id);
+        
         return Ok(comment);
     }
 
@@ -216,7 +219,14 @@ public class TasksController : ControllerBase
                 relatedType: "Task"
             );
         }
-
+        if (previousStatus != "Done" && dto.Status == "Done" && task.AssigneeUserId.HasValue)
+        {
+            await _ratings.AwardForTaskCompletionAsync(
+                userId: task.AssigneeUserId.Value,
+                priority: task.Priority,
+                taskId: task.Id
+            );
+}
         return Ok(task);
     }
 
