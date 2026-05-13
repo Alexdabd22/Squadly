@@ -15,9 +15,10 @@ public class AppDbContext : DbContext
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<Rating> Ratings => Set<Rating>(); 
+    public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<TeamMessage> TeamMessages => Set<TeamMessage>();
-public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
+    public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
+    public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -146,24 +147,25 @@ public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
                 .HasForeignKey(c => c.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
-        
-            modelBuilder.Entity<Notification>(entity =>
-    {
-        entity.ToTable("Notifications");
-        entity.HasKey(n => n.Id);
 
-        entity.Property(n => n.Type).IsRequired().HasMaxLength(50);
-        entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
-        entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
-        entity.Property(n => n.RelatedType).HasMaxLength(50);
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+            entity.HasKey(n => n.Id);
 
-        entity.HasOne(n => n.User)
-            .WithMany()
-            .HasForeignKey(n => n.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(n => n.Type).IsRequired().HasMaxLength(50);
+            entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
+            entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
+            entity.Property(n => n.RelatedType).HasMaxLength(50);
 
-        entity.HasIndex(n => n.UserId);
-        entity.HasIndex(n => new { n.UserId, n.IsRead });
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(n => n.UserId);
+            entity.HasIndex(n => new { n.UserId, n.IsRead });
+        });
 
         modelBuilder.Entity<Rating>(entity =>
         {
@@ -183,22 +185,22 @@ public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
 
         modelBuilder.Entity<TeamMessage>(entity =>
         {
-        entity.ToTable("TeamMessages");
-        entity.HasKey(m => m.Id);
-        entity.Property(m => m.Content).IsRequired().HasMaxLength(2000);
+            entity.ToTable("TeamMessages");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Content).IsRequired().HasMaxLength(2000);
 
-        entity.HasOne(m => m.Team)
-            .WithMany()
-            .HasForeignKey(m => m.TeamId)
-            .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(m => m.Team)
+                .WithMany()
+                .HasForeignKey(m => m.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        entity.HasOne(m => m.Author)
-            .WithMany()
-            .HasForeignKey(m => m.AuthorUserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(m => m.Author)
+                .WithMany()
+                .HasForeignKey(m => m.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-        entity.HasIndex(m => m.TeamId);
-    });
+            entity.HasIndex(m => m.TeamId);
+        });
 
         modelBuilder.Entity<ProjectMessage>(entity =>
         {
@@ -218,6 +220,27 @@ public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
 
             entity.HasIndex(m => m.ProjectId);
         });
-});
+
+        modelBuilder.Entity<TaskAttachment>(entity =>
+        {
+            entity.ToTable("TaskAttachments");
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.FileName).IsRequired().HasMaxLength(255);
+            entity.Property(a => a.OriginalFileName).IsRequired().HasMaxLength(255);
+            entity.Property(a => a.ContentType).IsRequired().HasMaxLength(100);
+
+            entity.HasOne(a => a.TaskItem)
+                .WithMany()
+                .HasForeignKey(a => a.TaskItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.UploadedBy)
+                .WithMany()
+                .HasForeignKey(a => a.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(a => a.TaskItemId);
+        });
     }
 }

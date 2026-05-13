@@ -4,6 +4,7 @@ import type { TaskItem, TaskStatus, TaskPriority, Project, Team, User } from '..
 import { formatRelativeTime } from '../../utils/date'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
+import TaskAttachments from '../../components/common/TaskAttachments'
 
 interface TaskForm {
   title: string
@@ -663,6 +664,8 @@ export default function TasksPage() {
                       <p className="text-sm text-slate-400">Коментарів поки немає.</p>
                     )}
                   </div>
+
+                  <TaskAttachments taskId={task.id} />
                 </>
               )}
             </div>

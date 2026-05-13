@@ -161,3 +161,14 @@ export interface ChatMessage {
   authorName: string
   createdAt: string
 }
+// Attachment types
+export interface TaskAttachment {
+  id: string
+  fileName: string
+  originalFileName: string
+  contentType: string
+  fileSize: number
+  uploadedByUserId: string
+  uploadedByName: string
+  createdAt: string
+}
