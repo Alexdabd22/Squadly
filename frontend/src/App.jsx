@@ -10,6 +10,7 @@ import ProfilePage from "./pages/profile/ProfilePage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import NotificationBell from "./components/layout/NotificationBell";
 import LeaderboardPage from "./pages/leaderboard/LeaderboardPage";
+import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 
 function Navigation() {
   const location = useLocation();
@@ -56,6 +57,7 @@ function Navigation() {
           <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Задачі</Link>
           <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Команди</Link>
           <Link to="/leaderboard" className="text-sm text-slate-700 hover:text-primary-600">Рейтинг</Link>
+          <Link to="/analytics" className="text-sm text-slate-700 hover:text-primary-600">Аналітика</Link>
           <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Профіль</Link>
         </>
       )}
@@ -96,6 +98,7 @@ export default function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="*" element={<LoginPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
       </Routes>
     </BrowserRouter>
   );
