@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Rating> Ratings => Set<Rating>(); 
+    public DbSet<TeamMessage> TeamMessages => Set<TeamMessage>();
+public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -177,6 +179,44 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(r => r.UserId);
+        });
+
+        modelBuilder.Entity<TeamMessage>(entity =>
+        {
+        entity.ToTable("TeamMessages");
+        entity.HasKey(m => m.Id);
+        entity.Property(m => m.Content).IsRequired().HasMaxLength(2000);
+
+        entity.HasOne(m => m.Team)
+            .WithMany()
+            .HasForeignKey(m => m.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(m => m.Author)
+            .WithMany()
+            .HasForeignKey(m => m.AuthorUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        entity.HasIndex(m => m.TeamId);
+    });
+
+        modelBuilder.Entity<ProjectMessage>(entity =>
+        {
+            entity.ToTable("ProjectMessages");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Content).IsRequired().HasMaxLength(2000);
+
+            entity.HasOne(m => m.Project)
+                .WithMany()
+                .HasForeignKey(m => m.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.Author)
+                .WithMany()
+                .HasForeignKey(m => m.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(m => m.ProjectId);
         });
 });
     }

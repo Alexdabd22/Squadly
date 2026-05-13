@@ -142,7 +142,7 @@ export interface LeaderboardEntry {
   rank: number
   tasksCompleted: number
 }
-
+// Stats types
 export interface UserStats {
   userId: string
   totalPoints: number
@@ -152,4 +152,12 @@ export interface UserStats {
   tasksCompletedMedium: number
   tasksCompletedLow: number
   commentsCount: number
+}
+// Message types
+export interface ChatMessage {
+  id: string
+  content: string
+  authorUserId: string
+  authorName: string
+  createdAt: string
 }

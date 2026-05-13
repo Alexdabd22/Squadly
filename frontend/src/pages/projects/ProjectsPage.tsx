@@ -3,6 +3,7 @@ import api from '../../api/client'
 import type { Project, CreateProjectRequest } from '../../types'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
+import Chat from '../../components/common/Chat'
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -11,6 +12,7 @@ export default function ProjectsPage() {
   const [editForm, setEditForm] = useState<CreateProjectRequest>({ title: '', description: '' })
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
 
   const { confirm, confirmProps } = useConfirm()
 
@@ -53,6 +55,7 @@ export default function ProjectsPage() {
 
     try {
       await api.delete(`/projects/${id}`)
+      if (selectedProjectId === id) setSelectedProjectId(null)
       loadProjects()
     } catch (err: any) {
       setError(err.response?.data?.message || 'Не вдалося видалити')
@@ -73,6 +76,8 @@ export default function ProjectsPage() {
       setError(err.response?.data?.message || 'Не вдалося оновити')
     }
   }
+
+  const selectedProject = projects.find((p) => p.id === selectedProjectId)
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -113,7 +118,7 @@ export default function ProjectsPage() {
         </button>
       </form>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {projects.length === 0 && (
           <p className="col-span-full text-center text-slate-500 py-12">
             Проєктів поки немає. Створіть перший вище.
@@ -122,7 +127,11 @@ export default function ProjectsPage() {
         {projects.map((project) => (
           <div
             key={project.id}
-            className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5"
+            className={`bg-white rounded-2xl shadow-sm border p-5 transition-all ${
+              selectedProjectId === project.id
+                ? 'border-primary-500 ring-2 ring-primary-200'
+                : 'border-slate-200'
+            }`}
           >
             {editingId === project.id ? (
               <div className="space-y-3">
@@ -159,10 +168,18 @@ export default function ProjectsPage() {
                 {project.description && (
                   <p className="text-sm text-slate-600 mb-3">{project.description}</p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() =>
+                      setSelectedProjectId(project.id === selectedProjectId ? null : project.id)
+                    }
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    {selectedProjectId === project.id ? '💬 Закрити чат' : '💬 Чат'}
+                  </button>
                   <button
                     onClick={() => startEdit(project)}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    className="text-sm text-slate-600 hover:text-slate-900 font-medium"
                   >
                     Редагувати
                   </button>
@@ -178,6 +195,15 @@ export default function ProjectsPage() {
           </div>
         ))}
       </div>
+
+      {selectedProject && (
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-3">
+            💬 Чат проєкту «{selectedProject.title}»
+          </h2>
+          <Chat scope="project" scopeId={selectedProject.id} title={selectedProject.title} />
+        </div>
+      )}
 
       <ConfirmDialog {...confirmProps} />
     </div>
