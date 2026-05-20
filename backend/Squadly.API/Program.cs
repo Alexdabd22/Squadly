@@ -7,6 +7,9 @@ using Squadly.Application.Interfaces;
 using Squadly.Infrastructure.Persistence;
 using Squadly.Infrastructure.Services;
 
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
