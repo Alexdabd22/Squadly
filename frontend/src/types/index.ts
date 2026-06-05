@@ -172,3 +172,33 @@ export interface TaskAttachment {
   uploadedByName: string
   createdAt: string
 }
+// Mentor types
+export interface MentorProject {
+  projectId: string
+  title: string
+  description?: string
+  totalMembers: number
+  totalTasks: number
+  completedTasks: number
+}
+
+export interface Mentee {
+  userId: string
+  fullName: string
+  email: string
+  role: string
+  totalTasks: number
+  completedTasks: number
+  inProgressTasks: number
+  todoTasks: number
+  totalPoints: number
+}
+
+export interface MentorNote {
+  id: string
+  aboutUserId: string
+  projectId: string
+  content: string
+  createdAt: string
+  updatedAt?: string
+}

@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<TeamMessage> TeamMessages => Set<TeamMessage>();
     public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
     public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
+    public DbSet<MentorNote> MentorNotes => Set<MentorNote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -241,6 +242,32 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(a => a.TaskItemId);
+        });
+
+        modelBuilder.Entity<MentorNote>(entity =>
+        {
+            entity.ToTable("MentorNotes");
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.Content).IsRequired().HasMaxLength(2000);
+
+            entity.HasOne(n => n.Mentor)
+                .WithMany()
+                .HasForeignKey(n => n.MentorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(n => n.AboutUser)
+                .WithMany()
+                .HasForeignKey(n => n.AboutUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(n => n.Project)
+                .WithMany()
+                .HasForeignKey(n => n.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(n => new { n.MentorUserId, n.ProjectId });
+            entity.HasIndex(n => new { n.MentorUserId, n.AboutUserId, n.ProjectId });
         });
     }
 }
