@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Squadly.Infrastructure.Persistence;
+using System.Security.Claims;
 
 namespace Squadly.API.Controllers;
 
@@ -17,21 +18,48 @@ public class AnalyticsController : ControllerBase
         _db = db;
     }
 
+    private Guid GetUserId() => Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+    // Список ID проєктів, де поточний користувач є учасником
+    private async Task<List<Guid>> GetMyProjectIdsAsync(Guid userId)
+    {
+        return await _db.ProjectMemberships
+            .Where(pm => pm.UserId == userId)
+            .Select(pm => pm.ProjectId)
+            .ToListAsync();
+    }
+
     [HttpGet("overview")]
     public async Task<IActionResult> GetOverview()
     {
-        var totalProjects = await _db.Projects.CountAsync();
-        var totalTeams = await _db.Teams.CountAsync();
-        var totalTasks = await _db.Tasks.CountAsync();
-        var totalUsers = await _db.Users.CountAsync();
-        var totalComments = await _db.Comments.CountAsync();
+        var userId = GetUserId();
+        var myProjectIds = await GetMyProjectIdsAsync(userId);
+
+        var totalProjects = myProjectIds.Count;
+
+        var totalTeams = await _db.Teams
+            .CountAsync(t => myProjectIds.Contains(t.ProjectId));
+
+        var totalTasks = await _db.Tasks
+            .CountAsync(t => myProjectIds.Contains(t.ProjectId));
+
+        var totalUsers = await _db.ProjectMemberships
+            .Where(pm => myProjectIds.Contains(pm.ProjectId))
+            .Select(pm => pm.UserId)
+            .Distinct()
+            .CountAsync();
+
+        var totalComments = await _db.Comments
+            .CountAsync(c => _db.Tasks.Any(t => t.Id == c.TaskItemId && myProjectIds.Contains(t.ProjectId)));
 
         var tasksByStatus = await _db.Tasks
+            .Where(t => myProjectIds.Contains(t.ProjectId))
             .GroupBy(t => t.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
 
         var tasksByPriority = await _db.Tasks
+            .Where(t => myProjectIds.Contains(t.ProjectId))
             .GroupBy(t => t.Priority)
             .Select(g => new { Priority = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -51,7 +79,11 @@ public class AnalyticsController : ControllerBase
     [HttpGet("projects-stats")]
     public async Task<IActionResult> GetProjectsStats()
     {
+        var userId = GetUserId();
+        var myProjectIds = await GetMyProjectIdsAsync(userId);
+
         var stats = await _db.Projects
+            .Where(p => myProjectIds.Contains(p.Id) && !p.IsDeleted)
             .Select(p => new
             {
                 ProjectId = p.Id,
@@ -71,18 +103,20 @@ public class AnalyticsController : ControllerBase
     [HttpGet("activity")]
     public async Task<IActionResult> GetActivity()
     {
+        var userId = GetUserId();
+        var myProjectIds = await GetMyProjectIdsAsync(userId);
+
         var fromDate = DateTime.UtcNow.Date.AddDays(-13);
 
-        // Завдання, створені за останні 14 днів
         var tasksData = await _db.Tasks
-            .Where(t => t.CreatedAt >= fromDate)
+            .Where(t => t.CreatedAt >= fromDate && myProjectIds.Contains(t.ProjectId))
             .GroupBy(t => t.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync();
 
-        // Коментарі за останні 14 днів
         var commentsData = await _db.Comments
-            .Where(c => c.CreatedAt >= fromDate)
+            .Where(c => c.CreatedAt >= fromDate &&
+                _db.Tasks.Any(t => t.Id == c.TaskItemId && myProjectIds.Contains(t.ProjectId)))
             .GroupBy(c => c.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -109,9 +143,13 @@ public class AnalyticsController : ControllerBase
     [HttpGet("top-performers")]
     public async Task<IActionResult> GetTopPerformers()
     {
-        // Топ виконавців за кількістю завершених задач
+        var userId = GetUserId();
+        var myProjectIds = await GetMyProjectIdsAsync(userId);
+
         var performers = await _db.Tasks
-            .Where(t => t.Status == "Done" && t.AssigneeUserId != null)
+            .Where(t => t.Status == "Done"
+                && t.AssigneeUserId != null
+                && myProjectIds.Contains(t.ProjectId))
             .GroupBy(t => t.AssigneeUserId)
             .Select(g => new
             {

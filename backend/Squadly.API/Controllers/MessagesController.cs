@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Squadly.API.Hubs;
 using Squadly.Application.DTOs.Messages;
+using Squadly.Application.Interfaces;
 using Squadly.Domain.Entities;
 using Squadly.Infrastructure.Persistence;
 using System.Security.Claims;
@@ -17,11 +18,13 @@ public class MessagesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IHubContext<ChatHub> _hub;
+    private readonly IProjectAuthorizationService _auth;
 
-    public MessagesController(AppDbContext db, IHubContext<ChatHub> hub)
+    public MessagesController(AppDbContext db, IHubContext<ChatHub> hub, IProjectAuthorizationService auth)
     {
         _db = db;
         _hub = hub;
+        _auth = auth;
     }
 
     private Guid? GetUserId()
@@ -30,11 +33,27 @@ public class MessagesController : ControllerBase
         return Guid.TryParse(idStr, out var id) ? id : null;
     }
 
+    private async Task<Guid?> GetTeamProjectIdAsync(Guid teamId)
+    {
+        var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == teamId);
+        return team?.ProjectId;
+    }
+
     // === TEAM MESSAGES ===
 
     [HttpGet("team/{teamId}")]
     public async Task<IActionResult> GetTeamMessages(Guid teamId)
     {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var projectId = await GetTeamProjectIdAsync(teamId);
+        if (projectId == null) return NotFound(new { message = "Команду не знайдено" });
+
+        // Лише учасник проєкту може читати чат команди
+        if (!await _auth.IsMemberAsync(projectId.Value, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+
         var messages = await _db.TeamMessages
             .Where(m => m.TeamId == teamId)
             .Include(m => m.Author)
@@ -61,9 +80,11 @@ public class MessagesController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Content))
             return BadRequest(new { message = "Повідомлення не може бути порожнім" });
 
-        var teamExists = await _db.Teams.AnyAsync(t => t.Id == teamId);
-        if (!teamExists)
-            return NotFound(new { message = "Команду не знайдено" });
+        var projectId = await GetTeamProjectIdAsync(teamId);
+        if (projectId == null) return NotFound(new { message = "Команду не знайдено" });
+
+        if (!await _auth.IsMemberAsync(projectId.Value, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
 
         var msg = new TeamMessage
         {
@@ -85,7 +106,6 @@ public class MessagesController : ControllerBase
             CreatedAt = msg.CreatedAt
         };
 
-        // Розіслати всім хто у групі цієї команди
         await _hub.Clients.Group($"team-{teamId}").SendAsync("MessageReceived", dtoResult);
 
         return Ok(dtoResult);
@@ -102,14 +122,16 @@ public class MessagesController : ControllerBase
 
         if (msg == null)
             return NotFound(new { message = "Повідомлення не знайдено" });
+        var projectId = await GetTeamProjectIdAsync(teamId);
+        var isOrganizer = projectId.HasValue
+            && await _auth.HasRoleAsync(projectId.Value, userId.Value, ProjectRole.Organizer);
 
-        if (msg.AuthorUserId != userId.Value)
-            return Forbid();
+        if (msg.AuthorUserId != userId.Value && !isOrganizer)
+            return StatusCode(403, new { message = "Ви можете видаляти лише свої повідомлення" });
 
         _db.TeamMessages.Remove(msg);
         await _db.SaveChangesAsync();
 
-        // Розіслати всім у групі
         await _hub.Clients.Group($"team-{teamId}").SendAsync("MessageDeleted", messageId);
 
         return Ok(new { message = "Видалено" });
@@ -120,6 +142,15 @@ public class MessagesController : ControllerBase
     [HttpGet("project/{projectId}")]
     public async Task<IActionResult> GetProjectMessages(Guid projectId)
     {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var projectExists = await _db.Projects.AnyAsync(p => p.Id == projectId && !p.IsDeleted);
+        if (!projectExists) return NotFound(new { message = "Проєкт не знайдено" });
+
+        if (!await _auth.IsMemberAsync(projectId, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+
         var messages = await _db.ProjectMessages
             .Where(m => m.ProjectId == projectId)
             .Include(m => m.Author)
@@ -146,9 +177,11 @@ public class MessagesController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Content))
             return BadRequest(new { message = "Повідомлення не може бути порожнім" });
 
-        var projectExists = await _db.Projects.AnyAsync(p => p.Id == projectId);
-        if (!projectExists)
-            return NotFound(new { message = "Проєкт не знайдено" });
+        var projectExists = await _db.Projects.AnyAsync(p => p.Id == projectId && !p.IsDeleted);
+        if (!projectExists) return NotFound(new { message = "Проєкт не знайдено" });
+
+        if (!await _auth.IsMemberAsync(projectId, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
 
         var msg = new ProjectMessage
         {
@@ -170,7 +203,6 @@ public class MessagesController : ControllerBase
             CreatedAt = msg.CreatedAt
         };
 
-        // Розіслати всім хто у групі цього проєкту
         await _hub.Clients.Group($"project-{projectId}").SendAsync("MessageReceived", dtoResult);
 
         return Ok(dtoResult);
@@ -188,13 +220,14 @@ public class MessagesController : ControllerBase
         if (msg == null)
             return NotFound(new { message = "Повідомлення не знайдено" });
 
-        if (msg.AuthorUserId != userId.Value)
-            return Forbid();
+        var isOrganizer = await _auth.HasRoleAsync(projectId, userId.Value, ProjectRole.Organizer);
+
+        if (msg.AuthorUserId != userId.Value && !isOrganizer)
+            return StatusCode(403, new { message = "Ви можете видаляти лише свої повідомлення" });
 
         _db.ProjectMessages.Remove(msg);
         await _db.SaveChangesAsync();
 
-        // Розіслати всім у групі
         await _hub.Clients.Group($"project-{projectId}").SendAsync("MessageDeleted", messageId);
 
         return Ok(new { message = "Видалено" });

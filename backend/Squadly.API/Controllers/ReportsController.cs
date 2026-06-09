@@ -5,6 +5,7 @@ using OfficeOpenXml;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using Squadly.Application.Interfaces;
 using Squadly.Infrastructure.Persistence;
 using System.Security.Claims;
 
@@ -16,10 +17,12 @@ namespace Squadly.API.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IProjectAuthorizationService _auth;
 
-    public ReportsController(AppDbContext db)
+    public ReportsController(AppDbContext db, IProjectAuthorizationService auth)
     {
         _db = db;
+        _auth = auth;
     }
 
     private Guid? GetUserId()
@@ -31,8 +34,14 @@ public class ReportsController : ControllerBase
     [HttpGet("project/{projectId}/pdf")]
     public async Task<IActionResult> ProjectPdf(Guid projectId)
     {
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
         if (project == null) return NotFound();
+
+        if (!await _auth.IsMemberAsync(projectId, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
 
         var tasks = await _db.Tasks
             .Where(t => t.ProjectId == projectId)
@@ -68,7 +77,6 @@ public class ReportsController : ControllerBase
 
                 page.Content().PaddingVertical(15).Column(col =>
                 {
-                    // Статистика
                     col.Item().PaddingBottom(10).Text("Загальна статистика").FontSize(14).Bold();
 
                     col.Item().Row(row =>
@@ -99,18 +107,16 @@ public class ReportsController : ControllerBase
                     });
 
                     col.Item().PaddingTop(10).Text($"Прогрес виконання: {completionRate:F1}%").FontSize(11).Bold();
-
-                    // Таблиця задач
                     col.Item().PaddingTop(20).Text("Перелік задач").FontSize(14).Bold();
 
                     col.Item().PaddingTop(5).Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(3);  // Назва
-                            columns.RelativeColumn(2);  // Статус
-                            columns.RelativeColumn(2);  // Пріоритет
-                            columns.RelativeColumn(2);  // Виконавець
+                            columns.RelativeColumn(3);
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(2);
                         });
 
                         table.Header(header =>
@@ -162,12 +168,17 @@ public class ReportsController : ControllerBase
         return File(pdfBytes, "application/pdf", fileName);
     }
 
-   
     [HttpGet("project/{projectId}/excel")]
     public async Task<IActionResult> ProjectExcel(Guid projectId)
     {
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
         if (project == null) return NotFound();
+
+        if (!await _auth.IsMemberAsync(projectId, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
 
         var tasks = await _db.Tasks
             .Where(t => t.ProjectId == projectId)
@@ -179,7 +190,6 @@ public class ReportsController : ControllerBase
         using var package = new ExcelPackage();
         var sheet = package.Workbook.Worksheets.Add("Задачі");
 
-        // Заголовки
         sheet.Cells[1, 1].Value = "Назва";
         sheet.Cells[1, 2].Value = "Опис";
         sheet.Cells[1, 3].Value = "Статус";
@@ -230,7 +240,6 @@ public class ReportsController : ControllerBase
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
-   
     [HttpGet("user/me/pdf")]
     public async Task<IActionResult> MyReportPdf()
     {
@@ -246,7 +255,6 @@ public class ReportsController : ControllerBase
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 
-        var totalAssigned = assignedTasks.Count;
         var completed = assignedTasks.Count(t => t.Status == "Done");
         var inProgress = assignedTasks.Count(t => t.Status == "InProgress");
 

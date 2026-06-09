@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Squadly.Application.DTOs.Attachments;
+using Squadly.Application.Interfaces;
 using Squadly.Domain.Entities;
 using Squadly.Infrastructure.Persistence;
 using System.Security.Claims;
@@ -15,12 +16,14 @@ public class AttachmentsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _env;
-    private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+    private readonly IProjectAuthorizationService _auth;
+    private const long MaxFileSize = 10 * 1024 * 1024; 
 
-    public AttachmentsController(AppDbContext db, IWebHostEnvironment env)
+    public AttachmentsController(AppDbContext db, IWebHostEnvironment env, IProjectAuthorizationService auth)
     {
         _db = db;
         _env = env;
+        _auth = auth;
     }
 
     private Guid? GetUserId()
@@ -29,9 +32,24 @@ public class AttachmentsController : ControllerBase
         return Guid.TryParse(idStr, out var id) ? id : null;
     }
 
+    private async Task<Guid?> GetTaskProjectIdAsync(Guid taskId)
+    {
+        var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+        return task?.ProjectId;
+    }
+
     [HttpGet("task/{taskId}")]
     public async Task<IActionResult> GetTaskAttachments(Guid taskId)
     {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var projectId = await GetTaskProjectIdAsync(taskId);
+        if (projectId == null) return NotFound(new { message = "Задачу не знайдено" });
+
+        if (!await _auth.IsMemberAsync(projectId.Value, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+
         var attachments = await _db.TaskAttachments
             .Where(a => a.TaskItemId == taskId)
             .Include(a => a.UploadedBy)
@@ -55,7 +73,7 @@ public class AttachmentsController : ControllerBase
     }
 
     [HttpPost("task/{taskId}")]
-    [RequestSizeLimit(15 * 1024 * 1024)] // 15 MB request limit
+    [RequestSizeLimit(15 * 1024 * 1024)]
     public async Task<IActionResult> Upload(Guid taskId, IFormFile file)
     {
         var userId = GetUserId();
@@ -67,11 +85,12 @@ public class AttachmentsController : ControllerBase
         if (file.Length > MaxFileSize)
             return BadRequest(new { message = "Файл занадто великий (макс. 10 МБ)" });
 
-        var taskExists = await _db.Tasks.AnyAsync(t => t.Id == taskId);
-        if (!taskExists)
-            return NotFound(new { message = "Задачу не знайдено" });
+        var projectId = await GetTaskProjectIdAsync(taskId);
+        if (projectId == null) return NotFound(new { message = "Задачу не знайдено" });
 
-        // Створити унікальне ім'я
+        if (!await _auth.IsMemberAsync(projectId.Value, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+
         var ext = Path.GetExtension(file.FileName);
         var safeName = $"{Guid.NewGuid()}{ext}";
 
@@ -116,13 +135,20 @@ public class AttachmentsController : ControllerBase
     }
 
     [HttpGet("{id}/download")]
-    [AllowAnonymous] // для прямого посилання на скачування
-    public async Task<IActionResult> Download(Guid id, [FromQuery] string? token)
+    public async Task<IActionResult> Download(Guid id)
     {
-        // Опціональна валідація токена з query string можна додати тут якщо треба
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
         var attachment = await _db.TaskAttachments.FirstOrDefaultAsync(a => a.Id == id);
         if (attachment == null)
             return NotFound(new { message = "Файл не знайдено" });
+
+        var projectId = await GetTaskProjectIdAsync(attachment.TaskItemId);
+        if (projectId == null) return NotFound(new { message = "Задачу не знайдено" });
+
+        if (!await _auth.IsMemberAsync(projectId.Value, userId.Value))
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
 
         var filePath = Path.Combine(_env.ContentRootPath, "uploads", attachment.FileName);
         if (!System.IO.File.Exists(filePath))
@@ -142,10 +168,14 @@ public class AttachmentsController : ControllerBase
         if (attachment == null)
             return NotFound(new { message = "Файл не знайдено" });
 
-        if (attachment.UploadedByUserId != userId.Value)
-            return Forbid();
+        // Видалити може автор або Organizer проєкту
+        var projectId = await GetTaskProjectIdAsync(attachment.TaskItemId);
+        var isOrganizer = projectId.HasValue
+            && await _auth.HasRoleAsync(projectId.Value, userId.Value, ProjectRole.Organizer);
 
-        // Видалити файл з диску
+        if (attachment.UploadedByUserId != userId.Value && !isOrganizer)
+            return StatusCode(403, new { message = "Ви можете видаляти лише свої файли" });
+
         var filePath = Path.Combine(_env.ContentRootPath, "uploads", attachment.FileName);
         if (System.IO.File.Exists(filePath))
         {
