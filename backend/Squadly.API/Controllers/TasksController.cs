@@ -41,7 +41,7 @@ public class TasksController : ControllerBase
 
         var tasks = await _db.Tasks
             .Where(t => _db.ProjectMemberships.Any(pm => pm.ProjectId == t.ProjectId && pm.UserId == userId))
-            .Include(t => t.Project)
+            .Where(t => _db.Projects.Any(p => p.Id == t.ProjectId && !p.IsDeleted))
             .Include(t => t.Team)
             .Include(t => t.Assignee)
             .Include(t => t.Comments!)

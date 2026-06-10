@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Squadly.Application.Interfaces;
 using Squadly.Infrastructure.Persistence;
 using Squadly.Infrastructure.Services;
+using Microsoft.AspNetCore.Mvc;
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -19,7 +20,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<Squadly.Infrastructure.Services.INotificationService, Squadly.Infrastructure.Services.NotificationService>();
 builder.Services.AddScoped<Squadly.Infrastructure.Services.IRatingService, Squadly.Infrastructure.Services.RatingService>();
 
-// JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret missing");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -72,11 +72,24 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
 
-// Controllers + Swagger
+// Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var firstError = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .SelectMany(x => x.Value!.Errors)
+                .Select(x => x.ErrorMessage)
+                .FirstOrDefault() ?? "Некоректні дані";
+
+            return new BadRequestObjectResult(new { message = firstError });
+        };
     });
 
 builder.Services.AddSignalR();

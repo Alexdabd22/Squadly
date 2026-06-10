@@ -1,9 +1,11 @@
 import { useState, useEffect, FormEvent } from 'react'
+import { Users, MessageCircle, Pencil, Trash2 } from 'lucide-react'
 import api from '../../api/client'
 import type { Project, CreateProjectRequest } from '../../types'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
 import Chat from '../../components/common/Chat'
+import ProjectMembersModal from '../../components/common/ProjectMembersModal'
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -13,6 +15,7 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [membersModalProject, setMembersModalProject] = useState<Project | null>(null)
 
   const { confirm, confirmProps } = useConfirm()
 
@@ -173,20 +176,30 @@ export default function ProjectsPage() {
                     onClick={() =>
                       setSelectedProjectId(project.id === selectedProjectId ? null : project.id)
                     }
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1"
                   >
-                    {selectedProjectId === project.id ? '💬 Закрити чат' : '💬 Чат'}
+                    <MessageCircle className="w-4 h-4" />
+                    {selectedProjectId === project.id ? 'Закрити чат' : 'Чат'}
+                  </button>
+                  <button
+                    onClick={() => setMembersModalProject(project)}
+                    className="text-sm text-slate-600 hover:text-slate-900 font-medium inline-flex items-center gap-1"
+                  >
+                    <Users className="w-4 h-4" />
+                    Учасники
                   </button>
                   <button
                     onClick={() => startEdit(project)}
-                    className="text-sm text-slate-600 hover:text-slate-900 font-medium"
+                    className="text-sm text-slate-600 hover:text-slate-900 font-medium inline-flex items-center gap-1"
                   >
+                    <Pencil className="w-4 h-4" />
                     Редагувати
                   </button>
                   <button
                     onClick={() => handleDelete(project.id)}
-                    className="text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="text-sm text-red-600 hover:text-red-700 font-medium inline-flex items-center gap-1"
                   >
+                    <Trash2 className="w-4 h-4" />
                     Видалити
                   </button>
                 </div>
@@ -198,14 +211,23 @@ export default function ProjectsPage() {
 
       {selectedProject && (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
-            💬 Чат проєкту «{selectedProject.title}»
+          <h2 className="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-primary-600" />
+            Чат проєкту «{selectedProject.title}»
           </h2>
           <Chat scope="project" scopeId={selectedProject.id} title={selectedProject.title} />
         </div>
       )}
 
       <ConfirmDialog {...confirmProps} />
+
+      {membersModalProject && (
+        <ProjectMembersModal
+          projectId={membersModalProject.id}
+          projectTitle={membersModalProject.title}
+          onClose={() => setMembersModalProject(null)}
+        />
+      )}
     </div>
   )
 }

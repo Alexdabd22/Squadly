@@ -202,3 +202,11 @@ export interface MentorNote {
   createdAt: string
   updatedAt?: string
 }
+// Project member types
+export interface ProjectMember {
+  userId: string
+  fullName: string
+  email: string
+  role: 'Participant' | 'Organizer' | 'Mentor'
+  joinedAt: string
+}

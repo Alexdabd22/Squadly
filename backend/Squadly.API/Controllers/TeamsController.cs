@@ -32,6 +32,7 @@ public class TeamsController : ControllerBase
 
         var teams = await _db.Teams
             .Where(t => _db.ProjectMemberships.Any(pm => pm.ProjectId == t.ProjectId && pm.UserId == userId))
+            .Where(t => _db.Projects.Any(p => p.Id == t.ProjectId && !p.IsDeleted))
             .Include(t => t.Project)
             .Include(t => t.TeamLead)
             .Include(t => t.Memberships)
