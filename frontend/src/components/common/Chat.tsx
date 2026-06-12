@@ -8,7 +8,7 @@ import { useConfirm } from '../../hooks/useConfirm'
 import chatIcon from '../../assets/icons/chat.png'
 
 interface ChatProps {
-  scope: 'team' | 'project'
+  scope: 'project'
   scopeId: string
   title?: string
 }
@@ -68,12 +68,8 @@ export default function Chat({ scope, scopeId, title }: ChatProps) {
       await connection.start()
       setConnectionStatus('connected')
 
-      // Приєднатись до групи
-      if (scope === 'team') {
-        await connection.invoke('JoinTeam', scopeId)
-      } else {
-        await connection.invoke('JoinProject', scopeId)
-      }
+      // Приєднатись до групи проєкту
+      await connection.invoke('JoinProject', scopeId)
 
       connectionRef.current = connection
     } catch (err) {
@@ -85,11 +81,7 @@ export default function Chat({ scope, scopeId, title }: ChatProps) {
   const teardownSignalR = async () => {
     if (connectionRef.current) {
       try {
-        if (scope === 'team') {
-          await connectionRef.current.invoke('LeaveTeam', scopeId).catch(() => {})
-        } else {
-          await connectionRef.current.invoke('LeaveProject', scopeId).catch(() => {})
-        }
+        await connectionRef.current.invoke('LeaveProject', scopeId).catch(() => {})
         await connectionRef.current.stop()
       } catch (err) {
         // ignore

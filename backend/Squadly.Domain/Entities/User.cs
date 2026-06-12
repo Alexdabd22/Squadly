@@ -10,11 +10,12 @@ public class User : BaseEntity
     public string? Bio { get; set; }
     public DateTime? LastLoginAt { get; set; }
 
+    public GlobalRole GlobalRole { get; set; } = GlobalRole.User;
+
     public string FullName => $"{FirstName} {LastName}".Trim();
 
     public ICollection<ProjectMembership> ProjectMemberships { get; set; } = new List<ProjectMembership>();
-    public ICollection<TeamMembership> TeamMemberships { get; set; } = new List<TeamMembership>();
-    
+
     public ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
-public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 }

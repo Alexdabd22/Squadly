@@ -46,7 +46,8 @@ public class ProjectsController : ControllerBase
         }
     }
 
-    [HttpPost]
+   [HttpPost]
+    [Authorize(Roles = "Organizer,Admin")]
     public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
     {
         var project = await _projects.CreateAsync(dto, GetUserId());

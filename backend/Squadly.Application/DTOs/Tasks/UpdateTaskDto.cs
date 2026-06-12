@@ -18,8 +18,6 @@ public class UpdateTaskDto
     [Required(ErrorMessage = "Пріоритет обов'язковий")]
     [RegularExpression("^(Low|Medium|High)$", ErrorMessage = "Невірний пріоритет")]
     public string Priority { get; set; } = "Medium";
-
-    public Guid? TeamId { get; set; }
     public Guid? AssigneeUserId { get; set; }
     public DateTime? DueDate { get; set; }
 }

@@ -37,9 +37,6 @@ public class AnalyticsController : ControllerBase
 
         var totalProjects = myProjectIds.Count;
 
-        var totalTeams = await _db.Teams
-            .CountAsync(t => myProjectIds.Contains(t.ProjectId));
-
         var totalTasks = await _db.Tasks
             .CountAsync(t => myProjectIds.Contains(t.ProjectId));
 
@@ -67,7 +64,6 @@ public class AnalyticsController : ControllerBase
         return Ok(new
         {
             totalProjects,
-            totalTeams,
             totalTasks,
             totalUsers,
             totalComments,

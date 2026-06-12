@@ -1,6 +1,6 @@
 import { useEffect, useState, ChangeEvent, FormEvent } from 'react'
 import api from '../../api/client'
-import type { TaskItem, TaskStatus, TaskPriority, Project, Team, User } from '../../types'
+import type { TaskItem, TaskStatus, TaskPriority, Project, User } from '../../types'
 import { formatRelativeTime } from '../../utils/date'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
@@ -12,7 +12,6 @@ interface TaskForm {
   status: TaskStatus
   priority: TaskPriority
   projectId: string
-  teamId: string
   assigneeUserId: string
 }
 
@@ -21,7 +20,6 @@ interface EditForm {
   description: string
   status: TaskStatus
   priority: TaskPriority
-  teamId: string
   assigneeUserId: string
 }
 
@@ -31,7 +29,6 @@ const emptyCreateForm: TaskForm = {
   status: 'ToDo',
   priority: 'Medium',
   projectId: '',
-  teamId: '',
   assigneeUserId: '',
 }
 
@@ -40,7 +37,6 @@ const emptyEditForm: EditForm = {
   description: '',
   status: 'ToDo',
   priority: 'Medium',
-  teamId: '',
   assigneeUserId: '',
 }
 
@@ -59,7 +55,6 @@ const priorityLabels: Record<TaskPriority, string> = {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [projects, setProjects] = useState<Project[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [message, setMessage] = useState<string>('')
   const [isError, setIsError] = useState<boolean>(false)
@@ -72,7 +67,6 @@ export default function TasksPage() {
 
   useEffect(() => {
     loadProjects()
-    loadTeams()
     loadTasks()
     loadUsers()
   }, [])
@@ -88,15 +82,6 @@ export default function TasksPage() {
       setProjects(response.data)
     } catch (error: any) {
       showMessage(error.response?.data?.message || 'Не вдалося завантажити проєкти', true)
-    }
-  }
-
-  const loadTeams = async () => {
-    try {
-      const response = await api.get<Team[]>('/teams')
-      setTeams(response.data)
-    } catch (error: any) {
-      showMessage(error.response?.data?.message || 'Не вдалося завантажити команди', true)
     }
   }
 
@@ -142,7 +127,6 @@ export default function TasksPage() {
         status: form.status,
         priority: form.priority,
         projectId: form.projectId,
-        teamId: form.teamId || null,
         assigneeUserId: form.assigneeUserId || null,
       })
 
@@ -187,7 +171,6 @@ export default function TasksPage() {
         description: task.description,
         status: getNextStatus(task.status),
         priority: task.priority,
-        teamId: task.team?.id || null,
         assigneeUserId: task.assignee?.id || null,
         dueDate: task.dueDate || null,
       })
@@ -206,7 +189,6 @@ export default function TasksPage() {
       description: task.description || '',
       status: task.status || 'ToDo',
       priority: task.priority || 'Medium',
-      teamId: task.team?.id || '',
       assigneeUserId: task.assignee?.id || '',
     })
   }
@@ -224,7 +206,6 @@ export default function TasksPage() {
         description: editForm.description,
         status: editForm.status,
         priority: editForm.priority,
-        teamId: editForm.teamId || null,
         assigneeUserId: editForm.assigneeUserId || null,
         dueDate: null,
       })
@@ -369,7 +350,7 @@ export default function TasksPage() {
             </select>
           </div>
 
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1">Проєкт</label>
             <select
               name="projectId"
@@ -382,23 +363,6 @@ export default function TasksPage() {
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Команда (необов'язково)</label>
-            <select
-              name="teamId"
-              value={form.teamId}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Оберіть команду</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
                 </option>
               ))}
             </select>
@@ -506,24 +470,7 @@ export default function TasksPage() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Команда</label>
-                    <select
-                      name="teamId"
-                      value={editForm.teamId}
-                      onChange={handleEditChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="">Оберіть команду</option>
-                      {teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Виконавець</label>
                     <select
                       name="assigneeUserId"
@@ -572,9 +519,6 @@ export default function TasksPage() {
                   <div className="text-sm text-slate-500 space-y-1 mb-3">
                     <div>
                       <span className="font-medium">Проєкт:</span> {task.project?.title || '—'}
-                    </div>
-                    <div>
-                      <span className="font-medium">Команда:</span> {task.team?.name || '—'}
                     </div>
                     <div>
                       <span className="font-medium">Виконавець:</span>{' '}
