@@ -19,6 +19,7 @@ export default function LoginPage() {
       const response = await api.post<AuthResponse>('/auth/login', { email, password })
       sessionStorage.setItem('token', response.data.accessToken)
       sessionStorage.setItem('userId', response.data.user.id)
+      sessionStorage.setItem('globalRole', response.data.user.globalRole)
       window.dispatchEvent(new Event('authChanged'))
       navigate('/dashboard')
     } catch (err: any) {

@@ -46,7 +46,6 @@ public class ReportsController : ControllerBase
         var tasks = await _db.Tasks
             .Where(t => t.ProjectId == projectId)
             .Include(t => t.Assignee)
-            .Include(t => t.Team)
             .OrderBy(t => t.Status)
             .ThenByDescending(t => t.Priority)
             .ToListAsync();
@@ -183,7 +182,6 @@ public class ReportsController : ControllerBase
         var tasks = await _db.Tasks
             .Where(t => t.ProjectId == projectId)
             .Include(t => t.Assignee)
-            .Include(t => t.Team)
             .OrderBy(t => t.Status)
             .ToListAsync();
 
@@ -195,10 +193,9 @@ public class ReportsController : ControllerBase
         sheet.Cells[1, 3].Value = "Статус";
         sheet.Cells[1, 4].Value = "Пріоритет";
         sheet.Cells[1, 5].Value = "Виконавець";
-        sheet.Cells[1, 6].Value = "Команда";
-        sheet.Cells[1, 7].Value = "Створено";
+        sheet.Cells[1, 6].Value = "Створено";
 
-        using (var range = sheet.Cells[1, 1, 1, 7])
+        using (var range = sheet.Cells[1, 1, 1, 6])
         {
             range.Style.Font.Bold = true;
             range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
@@ -228,8 +225,7 @@ public class ReportsController : ControllerBase
             sheet.Cells[row, 3].Value = statusLabels.GetValueOrDefault(task.Status, task.Status);
             sheet.Cells[row, 4].Value = priorityLabels.GetValueOrDefault(task.Priority, task.Priority);
             sheet.Cells[row, 5].Value = task.Assignee != null ? $"{task.Assignee.FirstName} {task.Assignee.LastName}" : "—";
-            sheet.Cells[row, 6].Value = task.Team?.Name ?? "—";
-            sheet.Cells[row, 7].Value = task.CreatedAt.ToString("dd.MM.yyyy HH:mm");
+            sheet.Cells[row, 6].Value = task.CreatedAt.ToString("dd.MM.yyyy HH:mm");
             row++;
         }
 

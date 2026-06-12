@@ -62,7 +62,8 @@ public class AuthService : IAuthService
         {
             Id = user.Id,
             Email = user.Email,
-            FullName = user.FullName
+            FullName = user.FullName,
+            GlobalRole = user.GlobalRole.ToString()
         }
     };
 }

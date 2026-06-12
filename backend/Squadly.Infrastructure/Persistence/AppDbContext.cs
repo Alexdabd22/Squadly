@@ -10,13 +10,10 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectMembership> ProjectMemberships => Set<ProjectMembership>();
-    public DbSet<Team> Teams => Set<Team>();
-    public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Rating> Ratings => Set<Rating>();
-    public DbSet<TeamMessage> TeamMessages => Set<TeamMessage>();
     public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
     public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
     public DbSet<MentorNote> MentorNotes => Set<MentorNote>();
@@ -33,6 +30,10 @@ public class AppDbContext : DbContext
             entity.Property(u => u.LastName).IsRequired().HasMaxLength(100);
             entity.Property(u => u.Email).IsRequired().HasMaxLength(256);
             entity.Property(u => u.PasswordHash).IsRequired();
+            entity.Property(u => u.GlobalRole)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(GlobalRole.User);
             entity.HasIndex(u => u.Email).IsUnique();
             entity.Ignore(u => u.FullName);
         });
@@ -69,42 +70,6 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Team>(entity =>
-        {
-            entity.ToTable("Teams");
-            entity.HasKey(t => t.Id);
-            entity.Property(t => t.Name).IsRequired().HasMaxLength(200);
-            entity.Property(t => t.Description).HasMaxLength(1000);
-
-            entity.HasOne(t => t.Project)
-                .WithMany(p => p.Teams)
-                .HasForeignKey(t => t.ProjectId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(t => t.TeamLead)
-                .WithMany()
-                .HasForeignKey(t => t.TeamLeadUserId)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
-
-        modelBuilder.Entity<TeamMembership>(entity =>
-        {
-            entity.ToTable("TeamMemberships");
-            entity.HasKey(tm => tm.Id);
-            entity.Property(tm => tm.Role).IsRequired().HasMaxLength(50);
-            entity.HasIndex(tm => new { tm.UserId, tm.TeamId }).IsUnique();
-
-            entity.HasOne(tm => tm.User)
-                .WithMany(u => u.TeamMemberships)
-                .HasForeignKey(tm => tm.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(tm => tm.Team)
-                .WithMany(t => t.Memberships)
-                .HasForeignKey(tm => tm.TeamId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
         modelBuilder.Entity<TaskItem>(entity =>
         {
             entity.ToTable("TaskItem");
@@ -119,11 +84,6 @@ public class AppDbContext : DbContext
                 .WithMany(p => p.Tasks)
                 .HasForeignKey(t => t.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(t => t.Team)
-                .WithMany(team => team.Tasks)
-                .HasForeignKey(t => t.TeamId)
-                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(t => t.Assignee)
                 .WithMany(u => u.AssignedTasks)
@@ -182,25 +142,6 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(r => r.UserId);
-        });
-
-        modelBuilder.Entity<TeamMessage>(entity =>
-        {
-            entity.ToTable("TeamMessages");
-            entity.HasKey(m => m.Id);
-            entity.Property(m => m.Content).IsRequired().HasMaxLength(2000);
-
-            entity.HasOne(m => m.Team)
-                .WithMany()
-                .HasForeignKey(m => m.TeamId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(m => m.Author)
-                .WithMany()
-                .HasForeignKey(m => m.AuthorUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasIndex(m => m.TeamId);
         });
 
         modelBuilder.Entity<ProjectMessage>(entity =>

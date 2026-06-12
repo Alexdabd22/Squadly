@@ -42,7 +42,6 @@ public class TasksController : ControllerBase
         var tasks = await _db.Tasks
             .Where(t => _db.ProjectMemberships.Any(pm => pm.ProjectId == t.ProjectId && pm.UserId == userId))
             .Where(t => _db.Projects.Any(p => p.Id == t.ProjectId && !p.IsDeleted))
-            .Include(t => t.Team)
             .Include(t => t.Assignee)
             .Include(t => t.Comments!)
                 .ThenInclude(c => c.Author)
@@ -81,16 +80,6 @@ public class TasksController : ControllerBase
             return StatusCode(403, new { message = ex.Message });
         }
 
-        if (dto.TeamId.HasValue)
-        {
-            var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == dto.TeamId.Value);
-            if (team == null)
-                return BadRequest(new { message = "Команду не знайдено" });
-
-            if (team.ProjectId != dto.ProjectId)
-                return BadRequest(new { message = "Команда не належить цьому проєкту" });
-        }
-
         if (dto.AssigneeUserId.HasValue)
         {
             var isAssigneeMember = await _db.ProjectMemberships
@@ -106,7 +95,6 @@ public class TasksController : ControllerBase
             Status = dto.Status,
             Priority = dto.Priority,
             ProjectId = dto.ProjectId,
-            TeamId = dto.TeamId,
             AssigneeUserId = dto.AssigneeUserId,
             DueDate = dto.DueDate
         };
@@ -224,16 +212,6 @@ public class TasksController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Title))
             return BadRequest(new { message = "Назва задачі обов'язкова" });
 
-        if (dto.TeamId.HasValue)
-        {
-            var team = await _db.Teams.FirstOrDefaultAsync(t => t.Id == dto.TeamId.Value);
-            if (team == null)
-                return BadRequest(new { message = "Команду не знайдено" });
-
-            if (team.ProjectId != task.ProjectId)
-                return BadRequest(new { message = "Команда не належить цьому проєкту" });
-        }
-
         if (dto.AssigneeUserId.HasValue)
         {
             var isAssigneeMember = await _db.ProjectMemberships
@@ -249,7 +227,6 @@ public class TasksController : ControllerBase
         task.Description = dto.Description?.Trim();
         task.Status = dto.Status;
         task.Priority = dto.Priority;
-        task.TeamId = dto.TeamId;
         task.AssigneeUserId = dto.AssigneeUserId;
         task.DueDate = dto.DueDate;
         task.UpdatedAt = DateTime.UtcNow;

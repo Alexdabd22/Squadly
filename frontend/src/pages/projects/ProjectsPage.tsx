@@ -16,6 +16,8 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState<boolean>(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [membersModalProject, setMembersModalProject] = useState<Project | null>(null)
+  const globalRole = sessionStorage.getItem('globalRole') ?? 'User'
+  const canCreateProjects = globalRole === 'Organizer' || globalRole === 'Admin'
 
   const { confirm, confirmProps } = useConfirm()
 
@@ -92,34 +94,40 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <form
-        onSubmit={handleCreate}
-        className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-3"
-      >
-        <h2 className="font-semibold text-slate-900">Створити проєкт</h2>
-        <input
-          type="text"
-          placeholder="Назва проєкту"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          required
-        />
-        <textarea
-          placeholder="Опис"
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          rows={3}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50"
+      {canCreateProjects ? (
+        <form
+          onSubmit={handleCreate}
+          className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6 space-y-3"
         >
-          {loading ? 'Створення...' : 'Створити'}
-        </button>
-      </form>
+          <h2 className="font-semibold text-slate-900">Створити проєкт</h2>
+          <input
+            type="text"
+            placeholder="Назва проєкту"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            required
+          />
+          <textarea
+            placeholder="Опис"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={3}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50"
+          >
+            {loading ? 'Створення...' : 'Створити'}
+          </button>
+        </form>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-sm text-amber-800">
+          Створювати нові проєкти може лише організатор. Зверніться до адміністратора, щоб отримати роль «Organizer».
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         {projects.length === 0 && (

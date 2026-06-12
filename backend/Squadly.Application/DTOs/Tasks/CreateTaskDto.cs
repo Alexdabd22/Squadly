@@ -21,8 +21,6 @@ public class CreateTaskDto
 
     [Required(ErrorMessage = "Проєкт обов'язковий")]
     public Guid ProjectId { get; set; }
-
-    public Guid? TeamId { get; set; }
     public Guid? AssigneeUserId { get; set; }
     public DateTime? DueDate { get; set; }
 }

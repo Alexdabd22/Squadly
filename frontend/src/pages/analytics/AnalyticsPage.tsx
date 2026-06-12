@@ -18,7 +18,6 @@ import api from '../../api/client'
 
 interface Overview {
   totalProjects: number
-  totalTeams: number
   totalTasks: number
   totalUsers: number
   totalComments: number
@@ -151,14 +150,10 @@ export default function AnalyticsPage() {
       )}
 
       {/* Картки загальної статистики */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <p className="text-xs text-slate-500 uppercase mb-1">Проєкти</p>
           <p className="text-3xl font-bold text-primary-600">{overview.totalProjects}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <p className="text-xs text-slate-500 uppercase mb-1">Команди</p>
-          <p className="text-3xl font-bold text-purple-600">{overview.totalTeams}</p>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <p className="text-xs text-slate-500 uppercase mb-1">Задачі</p>

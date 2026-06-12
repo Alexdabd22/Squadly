@@ -52,6 +52,7 @@ public class UsersController : ControllerBase
             user.FirstName,
             user.LastName,
             FullName = user.FirstName + " " + user.LastName,
+            GlobalRole = user.GlobalRole.ToString(),
             user.CreatedAt
         });
     }
@@ -71,13 +72,14 @@ public class UsersController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        return Ok(new
+       return Ok(new
         {
             user.Id,
             user.Email,
             user.FirstName,
             user.LastName,
-            FullName = user.FirstName + " " + user.LastName
+            FullName = user.FirstName + " " + user.LastName,
+            GlobalRole = user.GlobalRole.ToString()
         });
     }
 

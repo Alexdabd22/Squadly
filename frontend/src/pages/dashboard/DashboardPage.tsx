@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/client'
-import type { Project, Team, TaskItem, User } from '../../types'
+import type { Project, TaskItem, User } from '../../types'
 import type { LeaderboardEntry } from '../../types'
 import trophyIcon from '../../assets/trophy.png'
 import goldMedal from '../../assets/icons/medal-gold.png'
@@ -9,7 +9,6 @@ import silverMedal from '../../assets/icons/medal-silver.png'
 import bronzeMedal from '../../assets/icons/medal-bronze.png'
 interface Stats {
   projects: number
-  teams: number
   tasks: number
   tasksToDo: number
   tasksInProgress: number
@@ -20,7 +19,6 @@ interface Stats {
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     projects: 0,
-    teams: 0,
     tasks: 0,
     tasksToDo: 0,
     tasksInProgress: 0,
@@ -41,9 +39,8 @@ export default function DashboardPage() {
     try {
       const userId = sessionStorage.getItem('userId')
 
-      const [projectsRes, teamsRes, tasksRes, userRes] = await Promise.all([
+      const [projectsRes, tasksRes, userRes] = await Promise.all([
         api.get<Project[]>('/projects'),
-        api.get<Team[]>('/teams'),
         api.get<TaskItem[]>('/tasks'),
         api.get<User>('/users/me'),
       ])
@@ -61,7 +58,6 @@ export default function DashboardPage() {
 
       setStats({
         projects: projectsRes.data.length,
-        teams: teamsRes.data.length,
         tasks: tasks.length,
         tasksToDo,
         tasksInProgress,
@@ -103,21 +99,13 @@ export default function DashboardPage() {
       )}
 
       {/* Основні картки */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <Link
           to="/projects"
           className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow"
         >
           <p className="text-sm text-slate-500 mb-1">Проєкти</p>
           <p className="text-3xl font-bold text-primary-600">{stats.projects}</p>
-        </Link>
-
-        <Link
-          to="/teams"
-          className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow"
-        >
-          <p className="text-sm text-slate-500 mb-1">Команди</p>
-          <p className="text-3xl font-bold text-primary-600">{stats.teams}</p>
         </Link>
 
         <Link

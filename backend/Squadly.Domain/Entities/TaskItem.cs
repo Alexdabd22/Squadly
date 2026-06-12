@@ -11,9 +11,6 @@ public class TaskItem : BaseEntity
     public Guid ProjectId { get; set; }
     public Project? Project { get; set; }
 
-    public Guid? TeamId { get; set; }
-    public Team? Team { get; set; }
-
     public Guid? AssigneeUserId { get; set; }
     public User? Assignee { get; set; }
 

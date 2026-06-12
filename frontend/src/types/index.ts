@@ -28,6 +28,7 @@ export interface AuthResponse {
     id: string
     email: string
     fullName: string
+    globalRole: GlobalRole
   }
 }
 
@@ -48,6 +49,7 @@ export interface CreateProjectRequest {
 // Task types
 export type TaskStatus = 'ToDo' | 'InProgress' | 'Done'
 export type TaskPriority = 'Low' | 'Medium' | 'High'
+export type GlobalRole = 'User' | 'Organizer' | 'Admin'
 
 export interface TaskItem {
   id: string
@@ -56,7 +58,6 @@ export interface TaskItem {
   status: TaskStatus
   priority: TaskPriority
   project?: { id: string; title: string }
-  team?: { id: string; name: string }
   assignee?: { id: string; fullName: string; email: string }
   comments?: TaskComment[]
   dueDate?: string
@@ -84,7 +85,6 @@ export interface CreateTaskRequest {
   status: TaskStatus
   priority: TaskPriority
   projectId: string
-  teamId: string | null
   assigneeUserId: string | null
 }
 
@@ -93,24 +93,8 @@ export interface UpdateTaskRequest {
   description: string
   status: TaskStatus
   priority: TaskPriority
-  teamId: string | null
   assigneeUserId: string | null
   dueDate: string | null
-}
-
-// Team types
-export interface Team {
-  id: string
-  name: string
-  description?: string
-  projectId: string
-  createdAt: string
-}
-
-export interface CreateTeamRequest {
-  name: string
-  description?: string
-  projectId: string
 }
 
 // Comment types

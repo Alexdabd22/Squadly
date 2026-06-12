@@ -5,7 +5,6 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import TasksPage from "./pages/tasks/TasksPage";
-import TeamsPage from "./pages/teams/TeamsPage";
 import ProfilePage from "./pages/profile/ProfilePage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import NotificationBell from "./components/layout/NotificationBell";
@@ -13,29 +12,35 @@ import LeaderboardPage from "./pages/leaderboard/LeaderboardPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 import ReportsPage from "./pages/reports/ReportsPage";
 import MentorPage from "./pages/mentor/MentorPage";
+import AdminPage from "./pages/admin/AdminPage";
 import SearchBar from "./components/common/SearchBar";
 
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const [token, setToken] = useState(sessionStorage.getItem("token"));
+  const [globalRole, setGlobalRole] = useState(sessionStorage.getItem("globalRole"));
+
+  const refreshAuth = () => {
+    setToken(sessionStorage.getItem("token"));
+    setGlobalRole(sessionStorage.getItem("globalRole"));
+  };
 
   useEffect(() => {
-    const handleAuthChange = () => {
-      setToken(sessionStorage.getItem("token"));
-    };
-    window.addEventListener("authChanged", handleAuthChange);
-    return () => window.removeEventListener("authChanged", handleAuthChange);
+    window.addEventListener("authChanged", refreshAuth);
+    return () => window.removeEventListener("authChanged", refreshAuth);
   }, []);
 
   useEffect(() => {
-    setToken(sessionStorage.getItem("token"));
+    refreshAuth();
   }, [location]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("globalRole");
     setToken(null);
+    setGlobalRole(null);
     window.dispatchEvent(new Event("authChanged"));
     navigate("/login");
   };
@@ -47,13 +52,17 @@ function Navigation() {
         <>
           <Link to="/dashboard" className="text-sm text-slate-700 hover:text-primary-600">Головна</Link>
           <Link to="/projects" className="text-sm text-slate-700 hover:text-primary-600">Проєкти</Link>
-          <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Задачі</Link>
-          <Link to="/teams" className="text-sm text-slate-700 hover:text-primary-600">Команди</Link>
+          <Link to="/tasks" className="text-sm text-slate-700 hover:text-primary-600">Мої задачі</Link>
           <Link to="/leaderboard" className="text-sm text-slate-700 hover:text-primary-600">Рейтинг</Link>
           <Link to="/analytics" className="text-sm text-slate-700 hover:text-primary-600">Аналітика</Link>
           <Link to="/reports" className="text-sm text-slate-700 hover:text-primary-600">Звіти</Link>
           <Link to="/mentor" className="text-sm text-slate-700 hover:text-primary-600">Менторство</Link>
           <Link to="/profile" className="text-sm text-slate-700 hover:text-primary-600">Профіль</Link>
+          {globalRole === "Admin" && (
+            <Link to="/admin" className="text-sm text-red-600 hover:text-red-700 font-semibold">
+              Адмін-панель
+            </Link>
+          )}
         </>
       )}
       <span className="flex-1"></span>
@@ -89,13 +98,13 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/teams" element={<TeamsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/mentor" element={<MentorPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
