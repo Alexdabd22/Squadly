@@ -11,7 +11,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
 
-  const currentUserId = localStorage.getItem('userId')
+  const currentUserId = sessionStorage.getItem('userId')
 
   useEffect(() => {
     loadLeaderboard()

@@ -39,7 +39,7 @@ export default function DashboardPage() {
 
   const loadDashboard = async () => {
     try {
-      const userId = localStorage.getItem('userId')
+      const userId = sessionStorage.getItem('userId')
 
       const [projectsRes, teamsRes, tasksRes, userRes] = await Promise.all([
         api.get<Project[]>('/projects'),

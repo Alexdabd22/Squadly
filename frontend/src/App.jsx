@@ -13,44 +13,35 @@ import LeaderboardPage from "./pages/leaderboard/LeaderboardPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 import ReportsPage from "./pages/reports/ReportsPage";
 import MentorPage from "./pages/mentor/MentorPage";
+import SearchBar from "./components/common/SearchBar";
 
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [userId, setUserId] = useState(localStorage.getItem("userId"));
+  const [token, setToken] = useState(sessionStorage.getItem("token"));
 
   useEffect(() => {
     const handleAuthChange = () => {
-      setToken(localStorage.getItem("token"));
-      setUserId(localStorage.getItem("userId"));
+      setToken(sessionStorage.getItem("token"));
     };
-
     window.addEventListener("authChanged", handleAuthChange);
-    window.addEventListener("storage", handleAuthChange);
-
-    return () => {
-      window.removeEventListener("authChanged", handleAuthChange);
-      window.removeEventListener("storage", handleAuthChange);
-    };
+    return () => window.removeEventListener("authChanged", handleAuthChange);
   }, []);
 
   useEffect(() => {
-    setToken(localStorage.getItem("token"));
-    setUserId(localStorage.getItem("userId"));
+    setToken(sessionStorage.getItem("token"));
   }, [location]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("userId");
     setToken(null);
-    setUserId(null);
     window.dispatchEvent(new Event("authChanged"));
     navigate("/login");
   };
 
   return (
-    <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
+    <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-4">
       <span className="font-bold text-primary-600 text-lg">Squadly</span>
       {token && (
         <>
@@ -66,10 +57,10 @@ function Navigation() {
         </>
       )}
       <span className="flex-1"></span>
-      {token ? (
+      {token && (
         <>
+          <SearchBar />
           <NotificationBell />
-          <span className="text-xs text-slate-500 font-mono">{userId?.substring(0, 8)}...</span>
           <button
             onClick={handleLogout}
             className="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium"
@@ -77,7 +68,8 @@ function Navigation() {
             Вийти
           </button>
         </>
-      ) : (
+      )}
+      {!token && (
         <>
           <Link to="/login" className="text-sm text-slate-700 hover:text-primary-600">Вхід</Link>
           <Link to="/register" className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg font-medium">Реєстрація</Link>
@@ -100,11 +92,11 @@ export default function App() {
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="*" element={<LoginPage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/mentor" element={<MentorPage />} />
+        <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
   );

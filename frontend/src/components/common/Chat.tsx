@@ -23,7 +23,7 @@ export default function Chat({ scope, scopeId, title }: ChatProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const connectionRef = useRef<signalR.HubConnection | null>(null)
-  const currentUserId = localStorage.getItem('userId')
+  const currentUserId = sessionStorage.getItem('userId')
 
   const { confirm, confirmProps } = useConfirm()
 
@@ -43,7 +43,7 @@ export default function Chat({ scope, scopeId, title }: ChatProps) {
   }, [messages])
 
   const setupSignalR = async () => {
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl('http://localhost:5176/hubs/chat', {

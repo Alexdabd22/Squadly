@@ -27,7 +27,7 @@ export default function TaskAttachments({ taskId }: TaskAttachmentsProps) {
   const [error, setError] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const currentUserId = localStorage.getItem('userId')
+  const currentUserId = sessionStorage.getItem('userId')
   const { confirm, confirmProps } = useConfirm()
 
   useEffect(() => {

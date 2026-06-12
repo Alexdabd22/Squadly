@@ -46,7 +46,7 @@ export default function ProjectMembersModal({
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
 
-  const currentUserId = localStorage.getItem('userId')
+  const currentUserId = sessionStorage.getItem('userId')
   const { confirm, confirmProps } = useConfirm()
 
   useEffect(() => {

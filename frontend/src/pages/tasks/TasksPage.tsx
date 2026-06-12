@@ -245,7 +245,7 @@ export default function TasksPage() {
     setMessage('')
 
     const text = commentTexts[taskId]
-    const userId = localStorage.getItem('userId')
+    const userId = sessionStorage.getItem('userId')
 
     if (!text || !text.trim()) {
       showMessage('Введіть текст коментаря', true)
@@ -253,7 +253,7 @@ export default function TasksPage() {
     }
 
     if (!userId) {
-      showMessage('Немає userId у localStorage', true)
+      showMessage('Немає userId у сесії', true)
       return
     }
 
@@ -626,7 +626,7 @@ export default function TasksPage() {
                     {task.comments && task.comments.length > 0 ? (
                       <ul className="space-y-2">
                         {task.comments.map((comment) => {
-                          const currentUserId = localStorage.getItem('userId')
+                          const currentUserId = sessionStorage.getItem('userId')
                           const isMyComment = comment.authorUserId === currentUserId
 
                           return (
