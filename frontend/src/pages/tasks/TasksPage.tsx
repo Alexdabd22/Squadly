@@ -43,6 +43,8 @@ const emptyEditForm: EditForm = {
 const statusLabels: Record<TaskStatus, string> = {
   ToDo: 'До виконання',
   InProgress: 'В роботі',
+  InReview: 'На перевірці',
+  NeedsRevision: 'Потребує доопрацювання',
   Done: 'Виконано',
 }
 
@@ -275,8 +277,10 @@ export default function TasksPage() {
     const colors: Record<TaskStatus, string> = {
       ToDo: 'bg-slate-100 text-slate-700',
       InProgress: 'bg-blue-100 text-blue-700',
+      InReview: 'bg-purple-100 text-purple-700',
+      NeedsRevision: 'bg-amber-100 text-amber-700',
       Done: 'bg-green-100 text-green-700',
-    }
+  }
     return `inline-block px-2 py-0.5 rounded text-xs font-medium ${colors[status]}`
   }
 

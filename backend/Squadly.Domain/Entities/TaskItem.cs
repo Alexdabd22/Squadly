@@ -16,5 +16,17 @@ public class TaskItem : BaseEntity
 
     public DateTime? DueDate { get; set; }
 
+ 
+    public Guid? ReviewClaimedByUserId { get; set; }
+    public User? ReviewClaimedByUser { get; set; }
+    public DateTime? ReviewClaimedAt { get; set; }
+
+    public Guid? ReviewedByUserId { get; set; }
+    public User? ReviewedByUser { get; set; }
+
+    public string? ReviewComment { get; set; }
+    public bool PointsAwarded { get; set; } = false;
+
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<TaskSubmission> Submissions { get; set; } = new List<TaskSubmission>();
 }

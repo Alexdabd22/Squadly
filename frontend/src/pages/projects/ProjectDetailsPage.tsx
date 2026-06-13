@@ -223,7 +223,7 @@ export default function ProjectDetailsPage() {
 
       {/* Tab content */}
       {tab === 'tasks' && (
-        <ProjectKanbanTab projectId={project.id} canManage={isOrganizer} />
+       <ProjectKanbanTab projectId={project.id} canManage={isOrganizer} userRole={project.currentUserRole} />
       )}
 
       {tab === 'members' && (
