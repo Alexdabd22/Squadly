@@ -35,13 +35,24 @@ public class TasksController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? projectId = null)
     {
         var userId = GetUserId();
 
-        var tasks = await _db.Tasks
+        if (projectId.HasValue)
+        {
+            if (!await _auth.IsMemberAsync(projectId.Value, userId))
+                return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+        }
+
+        var query = _db.Tasks
             .Where(t => _db.ProjectMemberships.Any(pm => pm.ProjectId == t.ProjectId && pm.UserId == userId))
-            .Where(t => _db.Projects.Any(p => p.Id == t.ProjectId && !p.IsDeleted))
+            .Where(t => _db.Projects.Any(p => p.Id == t.ProjectId && !p.IsDeleted));
+
+        if (projectId.HasValue)
+            query = query.Where(t => t.ProjectId == projectId.Value);
+
+        var tasks = await query
             .Include(t => t.Assignee)
             .Include(t => t.Comments!)
                 .ThenInclude(c => c.Author)
@@ -96,7 +107,9 @@ public class TasksController : ControllerBase
             Priority = dto.Priority,
             ProjectId = dto.ProjectId,
             AssigneeUserId = dto.AssigneeUserId,
-            DueDate = dto.DueDate
+            DueDate = dto.DueDate.HasValue
+                ? DateTime.SpecifyKind(dto.DueDate.Value, DateTimeKind.Utc)
+                : null
         };
 
         _db.Tasks.Add(task);
@@ -228,7 +241,9 @@ public class TasksController : ControllerBase
         task.Status = dto.Status;
         task.Priority = dto.Priority;
         task.AssigneeUserId = dto.AssigneeUserId;
-        task.DueDate = dto.DueDate;
+        task.DueDate = dto.DueDate.HasValue
+            ? DateTime.SpecifyKind(dto.DueDate.Value, DateTimeKind.Utc)
+            : null;
         task.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();

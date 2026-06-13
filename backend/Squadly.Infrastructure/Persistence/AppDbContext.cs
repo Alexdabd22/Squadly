@@ -38,13 +38,41 @@ public class AppDbContext : DbContext
             entity.Ignore(u => u.FullName);
         });
 
-        modelBuilder.Entity<Project>(entity =>
+         modelBuilder.Entity<Project>(entity =>
         {
             entity.ToTable("Projects");
             entity.HasKey(p => p.Id);
             entity.Property(p => p.Title).IsRequired().HasMaxLength(200);
             entity.Property(p => p.Description).HasMaxLength(2000);
             entity.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+
+            entity.Property(p => p.Category)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .HasDefaultValue(ProjectCategory.Other);
+
+            entity.Property(p => p.Priority)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(ProjectPriority.Medium);
+
+            entity.Property(p => p.Color)
+                .HasMaxLength(20)
+                .HasDefaultValue("indigo");
+
+            entity.Property(p => p.Goal)
+                .HasMaxLength(1000);
+
+            entity.Property(p => p.Tags)
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>(),
+                    new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<string>>(
+                        (c1, c2) => (c1 ?? new()).SequenceEqual(c2 ?? new()),
+                        c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                        c => c.ToList()))
+                .HasDefaultValueSql("'[]'::jsonb");
 
             entity.HasOne(p => p.CreatedByUser)
                 .WithMany()
