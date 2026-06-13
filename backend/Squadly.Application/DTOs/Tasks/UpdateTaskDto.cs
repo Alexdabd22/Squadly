@@ -12,12 +12,13 @@ public class UpdateTaskDto
     public string? Description { get; set; }
 
     [Required(ErrorMessage = "Статус обов'язковий")]
-    [RegularExpression("^(ToDo|InProgress|Done)$", ErrorMessage = "Невірний статус")]
+    [RegularExpression("^(ToDo|InProgress|InReview|Done|NeedsRevision)$", ErrorMessage = "Невірний статус")]
     public string Status { get; set; } = "ToDo";
 
     [Required(ErrorMessage = "Пріоритет обов'язковий")]
     [RegularExpression("^(Low|Medium|High)$", ErrorMessage = "Невірний пріоритет")]
     public string Priority { get; set; } = "Medium";
+
     public Guid? AssigneeUserId { get; set; }
     public DateTime? DueDate { get; set; }
 }

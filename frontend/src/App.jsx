@@ -4,7 +4,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
-import TasksPage from "./pages/tasks/TasksPage";
+import TasksPage from './components/tasks/TasksPage'
 import ProfilePage from "./pages/profile/ProfilePage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import NotificationBell from "./components/layout/NotificationBell";
@@ -15,6 +15,9 @@ import MentorPage from "./pages/mentor/MentorPage";
 import AdminPage from "./pages/admin/AdminPage";
 import SearchBar from "./components/common/SearchBar";
 import ProjectDetailsPage from "./pages/projects/ProjectDetailsPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import RootRedirect from "./pages/RootRedirect";
+import AuthGuard from "./components/common/AuthGuard";
 
 function Navigation() {
   const location = useLocation();
@@ -94,20 +97,21 @@ export default function App() {
     <BrowserRouter>
       <Navigation />
       <Routes>
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/mentor" element={<MentorPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/projects/:id" element={<ProjectDetailsPage />} />
-        <Route path="*" element={<LoginPage />} />
+        <Route path="/dashboard" element={<AuthGuard><DashboardPage /></AuthGuard>} />
+        <Route path="/projects" element={<AuthGuard><ProjectsPage /></AuthGuard>} />
+        <Route path="/projects/:id" element={<AuthGuard><ProjectDetailsPage /></AuthGuard>} />
+        <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
+        <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+        <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
+        <Route path="/leaderboard" element={<AuthGuard><LeaderboardPage /></AuthGuard>} />
+        <Route path="/analytics" element={<AuthGuard><AnalyticsPage /></AuthGuard>} />
+        <Route path="/reports" element={<AuthGuard><ReportsPage /></AuthGuard>} />
+        <Route path="/mentor" element={<AuthGuard><MentorPage /></AuthGuard>} />
+        <Route path="/admin" element={<AuthGuard><AdminPage /></AuthGuard>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

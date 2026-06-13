@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<ProjectMessage> ProjectMessages => Set<ProjectMessage>();
     public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
     public DbSet<MentorNote> MentorNotes => Set<MentorNote>();
+    public DbSet<TaskSubmission> TaskSubmissions => Set<TaskSubmission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -117,8 +118,57 @@ public class AppDbContext : DbContext
                 .WithMany(u => u.AssignedTasks)
                 .HasForeignKey(t => t.AssigneeUserId)
                 .OnDelete(DeleteBehavior.SetNull);
-        });
+            entity.HasOne(t => t.ReviewClaimedByUser)
+                .WithMany()
+                .HasForeignKey(t => t.ReviewClaimedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(t => t.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(t => t.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.Property(t => t.ReviewComment)
+                .HasMaxLength(2000);
+
+            entity.Property(t => t.PointsAwarded)
+                .HasDefaultValue(false);    
+        });
+        modelBuilder.Entity<TaskSubmission>(entity =>
+        {
+            entity.ToTable("TaskSubmissions");
+            entity.HasKey(s => s.Id);
+
+            entity.Property(s => s.WhatWasDone)
+                .IsRequired()
+                .HasMaxLength(3000);
+
+            entity.Property(s => s.Links)
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>(),
+                    new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<string>>(
+                        (c1, c2) => (c1 ?? new()).SequenceEqual(c2 ?? new()),
+                        c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                        c => c.ToList()))
+                .HasDefaultValueSql("'[]'::jsonb");
+
+            entity.Property(s => s.HoursSpent)
+                .HasColumnType("numeric(6,2)");
+
+            entity.HasOne(s => s.TaskItem)
+                .WithMany(t => t.Submissions)
+                .HasForeignKey(s => s.TaskItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.SubmittedByUser)
+                .WithMany()
+                .HasForeignKey(s => s.SubmittedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(s => s.TaskItemId);
+        });
         modelBuilder.Entity<Comment>(entity =>
         {
             entity.ToTable("Comment");

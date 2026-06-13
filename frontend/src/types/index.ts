@@ -88,7 +88,7 @@ export interface UpdateProjectRequest extends CreateProjectRequest {
   status?: ProjectStatus
 }
 // Task types
-export type TaskStatus = 'ToDo' | 'InProgress' | 'Done'
+export type TaskStatus = 'ToDo' | 'InProgress' | 'InReview' | 'Done' | 'NeedsRevision'
 export type TaskPriority = 'Low' | 'Medium' | 'High'
 export type GlobalRole = 'User' | 'Organizer' | 'Admin'
 
@@ -100,6 +100,12 @@ export interface TaskItem {
   priority: TaskPriority
   project?: { id: string; title: string }
   assignee?: { id: string; fullName: string; email: string }
+  reviewClaimedByUser?: { id: string; firstName: string; lastName: string; fullName: string } | null
+  reviewClaimedByUserId?: string | null
+  reviewClaimedAt?: string | null
+  reviewedByUserId?: string | null
+  reviewComment?: string | null
+  pointsAwarded?: boolean
   comments?: TaskComment[]
   dueDate?: string
   createdAt: string
@@ -118,6 +124,15 @@ export interface TaskComment {
     fullName: string
   }
   createdAt: string
+}
+export interface TaskSubmission {
+  id: string
+  whatWasDone: string
+  links: string[]
+  hoursSpent?: number
+  submissionNumber: number
+  createdAt: string
+  submittedBy: string
 }
 
 export interface CreateTaskRequest {
