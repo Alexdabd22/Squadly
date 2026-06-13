@@ -17,6 +17,7 @@ import SubmitTaskModal from '../tasks/SubmitTaskModal'
 import ReviewTaskModal from '../tasks/ReviewTaskModal'
 import ConfirmDialog from '../common/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
+import TaskDetailsModal from '../tasks/TaskDetailsModal'
 
 interface Props {
   projectId: string
@@ -42,6 +43,7 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
   const connectionRef = useRef<signalR.HubConnection | null>(null)
   const currentUserId = sessionStorage.getItem('userId')
   const isReviewer = userRole === 'Mentor' || userRole === 'Organizer'
+  const [detailTask, setDetailTask] = useState<TaskItem | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -304,7 +306,12 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
                       )}
 
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-medium text-sm text-slate-900 break-words">{task.title}</h4>
+                        <h4
+                        className="font-medium text-sm text-slate-900 break-words cursor-pointer hover:text-primary-600"
+                        onClick={(e) => { e.stopPropagation(); setDetailTask(task) }}
+                        >
+                        {task.title}
+                        </h4>
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${TASK_PRIORITY_BADGE[task.priority]}`}>
                           {TASK_PRIORITY_LABEL[task.priority]}
                         </span>
@@ -419,7 +426,12 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
           onReviewed={load}
         />
       )}
-
+         <TaskDetailsModal
+        open={detailTask !== null}
+        task={detailTask}
+        onClose={() => setDetailTask(null)}
+        onChanged={load}
+      />
       <ConfirmDialog {...confirmProps} />
     </div>
   )
