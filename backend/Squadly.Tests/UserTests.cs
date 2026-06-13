@@ -73,7 +73,6 @@ public class UserTests
         {
             Assert.That(user.ProjectMemberships, Is.Not.Null);
             Assert.That(user.ProjectMemberships, Is.Empty);
-            Assert.That(user.TeamMemberships, Is.Not.Null);
             Assert.That(user.AssignedTasks, Is.Not.Null);
             Assert.That(user.Comments, Is.Not.Null);
         });

@@ -14,6 +14,7 @@ import ReportsPage from "./pages/reports/ReportsPage";
 import MentorPage from "./pages/mentor/MentorPage";
 import AdminPage from "./pages/admin/AdminPage";
 import SearchBar from "./components/common/SearchBar";
+import ProjectDetailsPage from "./pages/projects/ProjectDetailsPage";
 
 function Navigation() {
   const location = useLocation();
@@ -105,6 +106,7 @@ export default function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/mentor" element={<MentorPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/projects/:id" element={<ProjectDetailsPage />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>

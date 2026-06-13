@@ -29,7 +29,6 @@ public class ProjectTests
         Assert.Multiple(() =>
         {
             Assert.That(project.Memberships, Is.Not.Null.And.Empty);
-            Assert.That(project.Teams, Is.Not.Null.And.Empty);
             Assert.That(project.Tasks, Is.Not.Null.And.Empty);
         });
     }
@@ -37,7 +36,6 @@ public class ProjectTests
     [Test]
     public void Project_CanChangeStatusToCompleted()
     {
-        // Arrange — створюємо активний проект
         var project = new Project { Title = "Test" };
 
         project.Status = ProjectStatus.Completed;
@@ -56,7 +54,6 @@ public class ProjectTests
     [Test]
     public void Project_IsNotDeleted_ByDefault()
     {
-        // Arrange + Act — новий проект
         var project = new Project();
 
         Assert.That(project.IsDeleted, Is.False);

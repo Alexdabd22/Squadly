@@ -33,19 +33,60 @@ export interface AuthResponse {
 }
 
 // Project types
+export type ProjectStatus = 'Active' | 'Completed' | 'Archived'
+export type ProjectCategory =
+  | 'Development'
+  | 'Design'
+  | 'Marketing'
+  | 'Research'
+  | 'Education'
+  | 'Business'
+  | 'Other'
+export type ProjectPriority = 'Low' | 'Medium' | 'High'
+export type ProjectColor =
+  | 'indigo'
+  | 'blue'
+  | 'teal'
+  | 'green'
+  | 'amber'
+  | 'orange'
+  | 'red'
+  | 'purple'
+
 export interface Project {
   id: string
   title: string
   description?: string
+  status: ProjectStatus
+  category: ProjectCategory
+  priority: ProjectPriority
+  color: ProjectColor
+  startDate?: string
+  deadline?: string
+  goal?: string
+  tags: string[]
   createdAt: string
-  ownerId?: string
+  createdByUserId: string
+  createdByUserName: string
+  memberCount: number
+  currentUserRole?: 'Participant' | 'Organizer' | 'Mentor'
 }
 
 export interface CreateProjectRequest {
   title: string
   description?: string
+  category: ProjectCategory
+  priority: ProjectPriority
+  color: ProjectColor
+  startDate?: string | null
+  deadline?: string | null
+  goal?: string
+  tags: string[]
 }
 
+export interface UpdateProjectRequest extends CreateProjectRequest {
+  status?: ProjectStatus
+}
 // Task types
 export type TaskStatus = 'ToDo' | 'InProgress' | 'Done'
 export type TaskPriority = 'Low' | 'Medium' | 'High'

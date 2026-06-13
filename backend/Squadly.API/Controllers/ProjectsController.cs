@@ -46,12 +46,19 @@ public class ProjectsController : ControllerBase
         }
     }
 
-   [HttpPost]
+  [HttpPost]
     [Authorize(Roles = "Organizer,Admin")]
     public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
     {
-        var project = await _projects.CreateAsync(dto, GetUserId());
-        return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
+        try
+        {
+            var project = await _projects.CreateAsync(dto, GetUserId());
+            return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id:guid}")]
