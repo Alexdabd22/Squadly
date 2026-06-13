@@ -32,7 +32,6 @@ export default function TasksPage() {
     setLoading(true)
     try {
       const res = await api.get<TaskItem[]>('/tasks')
-      // Тільки мої задачі
       const myTasks = res.data.filter((t) => t.assignee?.id === currentUserId)
       setTasks(myTasks)
     } catch (err: any) {

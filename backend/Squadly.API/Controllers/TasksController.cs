@@ -211,6 +211,18 @@ public class TasksController : ControllerBase
                 .SendAsync("TaskStatusChanged", new { taskId = task.Id, status = task.Status });
         }
 
+        if (previousStatus != "Done" && dto.Status == "Done"
+            && task.AssigneeUserId.HasValue && !task.PointsAwarded)
+        {
+            await _ratings.AwardForTaskCompletionAsync(
+                userId: task.AssigneeUserId.Value,
+                priority: task.Priority,
+                taskId: task.Id
+            );
+            task.PointsAwarded = true;
+            await _db.SaveChangesAsync();
+        }
+
         return Ok(task);
     }
 
@@ -567,7 +579,6 @@ public class TasksController : ControllerBase
             );
         }
 
-        await _ratings.AwardForCommentAsync(userId, comment.Id);
         return Ok(comment);
     }
 

@@ -65,8 +65,16 @@ public class ProjectMembersController : ControllerBase
         if (alreadyMember)
             return BadRequest(new { message = "Користувач вже є учасником проєкту" });
 
-        if (!Enum.TryParse<ProjectRole>(req.Role, out var role))
+         if (!Enum.TryParse<ProjectRole>(req.Role, out var role))
             role = ProjectRole.Participant;
+
+        if (role == ProjectRole.Mentor)
+        {
+            var mentorCount = await _db.ProjectMemberships
+                .CountAsync(pm => pm.ProjectId == projectId && pm.Role == ProjectRole.Mentor);
+            if (mentorCount >= 3)
+                return BadRequest(new { message = "У проєкті може бути максимум 3 ментори" });
+        }
 
         _db.ProjectMemberships.Add(new ProjectMembership
         {
@@ -98,6 +106,14 @@ public class ProjectMembersController : ControllerBase
 
         if (memberUserId == userId)
             return BadRequest(new { message = "Не можна змінити свою власну роль" });
+
+        if (newRole == ProjectRole.Mentor)
+        {
+            var mentorCount = await _db.ProjectMemberships
+                .CountAsync(pm => pm.ProjectId == projectId && pm.Role == ProjectRole.Mentor);
+            if (mentorCount >= 3)
+                return BadRequest(new { message = "У проєкті може бути максимум 3 ментори" });
+        }
 
         membership.Role = newRole;
         await _db.SaveChangesAsync();
