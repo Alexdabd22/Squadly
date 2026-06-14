@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-  ArrowLeft,
+ArrowLeft,
   LayoutGrid,
   Users,
   MessageCircle,
@@ -10,6 +10,12 @@ import {
   Pencil,
   Calendar,
   Target,
+  List,
+  BookOpen,
+  Archive,         
+  CheckCircle2,    
+  RotateCcw,       
+  ChevronDown,
 } from 'lucide-react'
 import api from '../../api/client'
 import type { Project } from '../../types'
@@ -26,8 +32,11 @@ import ProjectWizard from '../../components/projects/ProjectWizard'
 import ProjectKanbanTab from '../../components/projects/ProjectKanbanTab'
 import ProjectAnalyticsTab from '../../components/projects/ProjectAnalyticsTab'
 import ProjectReportTab from '../../components/projects/ProjectReportTab'
+import ProjectTaskListView from '../../components/projects/ProjectTaskListView'
+import ProjectWikiTab from '../../components/projects/ProjectWikiTab'
+import type { TaskItem } from '../../types'
 
-type Tab = 'tasks' | 'members' | 'chat' | 'analytics' | 'report'
+type Tab = 'tasks' | 'members' | 'chat' | 'analytics' | 'report' | 'wiki'
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { key: 'tasks', label: 'Задачі', icon: LayoutGrid },
@@ -35,6 +44,7 @@ const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { key: 'chat', label: 'Чат', icon: MessageCircle },
   { key: 'analytics', label: 'Аналітика', icon: BarChart3 },
   { key: 'report', label: 'Звіт', icon: FileText },
+  { key: 'wiki', label: 'Wiki', icon: BookOpen },
 ]
 
 export default function ProjectDetailsPage() {
@@ -49,6 +59,10 @@ export default function ProjectDetailsPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  const [changingStatus, setChangingStatus] = useState(false)
+  const [taskViewMode, setTaskViewMode] = useState<'kanban' | 'list'>('kanban')
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([])
 
   const load = async () => {
     if (!id) return
@@ -101,6 +115,18 @@ export default function ProjectDetailsPage() {
       setEditError(err.response?.data?.message || 'Не вдалося зберегти')
     } finally {
       setEditLoading(false)
+    }
+  }
+  const handleChangeStatus = async (newStatus: 'Active' | 'Completed' | 'Archived') => {
+    setChangingStatus(true)
+    setStatusMenuOpen(false)
+    try {
+      await api.patch(`/projects/${project.id}/status`, { status: newStatus })
+      await load()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Не вдалося змінити статус')
+    } finally {
+      setChangingStatus(false)
     }
   }
 
@@ -191,13 +217,64 @@ export default function ProjectDetailsPage() {
             </div>
 
             {isOrganizer && (
-              <button
-                onClick={() => setEditOpen(true)}
-                className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium flex-shrink-0"
-              >
-                <Pencil className="w-4 h-4" />
-                Редагувати
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Dropdown зміни статусу */}
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusMenuOpen(!statusMenuOpen)}
+                    disabled={changingStatus}
+                    className="inline-flex items-center gap-1.5 bg-white border border-slate-200 hover:border-primary-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    Статус
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  {statusMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setStatusMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-lg z-20 min-w-[200px] py-1">
+                        {project.status !== 'Active' && (
+                          <button
+                            onClick={() => handleChangeStatus('Active')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-2"
+                          >
+                            <RotateCcw className="w-4 h-4 text-blue-600" />
+                            Відновити (Активний)
+                          </button>
+                        )}
+                        {project.status !== 'Completed' && (
+                          <button
+                            onClick={() => handleChangeStatus('Completed')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-2"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            Завершити проєкт
+                          </button>
+                        )}
+                        {project.status !== 'Archived' && (
+                          <button
+                            onClick={() => handleChangeStatus('Archived')}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-2"
+                          >
+                            <Archive className="w-4 h-4 text-slate-500" />
+                            Архівувати
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Редагувати
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -223,7 +300,49 @@ export default function ProjectDetailsPage() {
 
       {/* Tab content */}
       {tab === 'tasks' && (
-       <ProjectKanbanTab projectId={project.id} canManage={isOrganizer} userRole={project.currentUserRole} />
+        <div>
+          {/* Перемикач вигляду */}
+          <div className="flex items-center justify-end gap-1 mb-4">
+            <button
+              onClick={() => setTaskViewMode('kanban')}
+              title="Kanban-дошка"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                taskViewMode === 'kanban'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-primary-300'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Kanban
+            </button>
+            <button
+              onClick={() => setTaskViewMode('list')}
+              title="Список задач"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                taskViewMode === 'list'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-primary-300'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              Список
+            </button>
+          </div>
+
+          {taskViewMode === 'kanban' ? (
+            <ProjectKanbanTab
+              projectId={project.id}
+              canManage={isOrganizer}
+              userRole={project.currentUserRole}
+              onTasksLoaded={setAllTasks}
+            />
+          ) : (
+            <ProjectTaskListView
+              tasks={allTasks}
+              onChanged={() => {}}
+            />
+          )}
+        </div>
       )}
 
       {tab === 'members' && (
@@ -250,6 +369,13 @@ export default function ProjectDetailsPage() {
 
       {tab === 'report' && (
         <ProjectReportTab projectId={project.id} projectTitle={project.title} />
+      )}
+
+      {tab === 'wiki' && (
+        <ProjectWikiTab
+          projectId={project.id}
+          canEdit={project.currentUserRole === 'Organizer' || project.currentUserRole === 'Mentor'}
+        />
       )}
 
       {/* Модалки */}

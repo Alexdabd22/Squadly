@@ -14,6 +14,8 @@ public class Project : BaseEntity
     public string? Goal { get; set; }
     public List<string> Tags { get; set; } = new();
 
+    public string? WikiContent { get; set; }
+
     public Guid CreatedByUserId { get; set; }
     public User? CreatedByUser { get; set; }
 

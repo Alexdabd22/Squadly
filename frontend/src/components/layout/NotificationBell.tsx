@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import * as signalR from '@microsoft/signalr'
 import api from '../../api/client'
 
 export default function NotificationBell() {
   const [count, setCount] = useState<number>(0)
   const location = useLocation()
+  const connectionRef = useRef<signalR.HubConnection | null>(null)
 
   const loadCount = async () => {
     try {
@@ -17,23 +19,53 @@ export default function NotificationBell() {
 
   useEffect(() => {
     loadCount()
+    setupSignalR()
 
-    // Оновлення при зміні маршруту
-    const handleNotificationsChange = () => loadCount()
-    window.addEventListener('notificationsChanged', handleNotificationsChange)
-
-    // Періодичне оновлення кожні 30 секунд
-    const interval = setInterval(loadCount, 30000)
+    const handleChange = () => loadCount()
+    window.addEventListener('notificationsChanged', handleChange)
 
     return () => {
-      window.removeEventListener('notificationsChanged', handleNotificationsChange)
-      clearInterval(interval)
+      window.removeEventListener('notificationsChanged', handleChange)
+      teardownSignalR()
     }
   }, [])
 
+  // Оновлення при переході на іншу сторінку
   useEffect(() => {
     loadCount()
   }, [location.pathname])
+
+  const setupSignalR = async () => {
+    const token = sessionStorage.getItem('token')
+    if (!token) return
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl('http://localhost:5176/hubs/notifications', {
+        accessTokenFactory: () => token,
+      })
+      .withAutomaticReconnect()
+      .build()
+
+    connection.on('UnreadCountChanged', (newCount: number) => {
+      setCount(newCount)
+    })
+
+    try {
+      await connection.start()
+      connectionRef.current = connection
+    } catch (err) {
+      console.warn('NotificationHub: не вдалося підключитись, fallback на REST')
+      const interval = setInterval(loadCount, 60000)
+      return () => clearInterval(interval)
+    }
+  }
+
+  const teardownSignalR = async () => {
+    if (connectionRef.current) {
+      try { await connectionRef.current.stop() } catch { /* ignore */ }
+      connectionRef.current = null
+    }
+  }
 
   return (
     <Link
@@ -56,7 +88,7 @@ export default function NotificationBell() {
         />
       </svg>
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-xs font-semibold flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-xs font-semibold flex items-center justify-center leading-none">
           {count > 99 ? '99+' : count}
         </span>
       )}

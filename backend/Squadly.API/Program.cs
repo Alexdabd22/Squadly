@@ -18,6 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<Squadly.Infrastructure.Services.INotificationService, Squadly.Infrastructure.Services.NotificationService>();
+builder.Services.AddScoped<Squadly.Infrastructure.Services.IRealtimeNotifier, Squadly.API.Services.SignalRNotifier>();
 builder.Services.AddScoped<Squadly.Infrastructure.Services.IRatingService, Squadly.Infrastructure.Services.RatingService>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret missing");
@@ -110,6 +111,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHub<Squadly.API.Hubs.ChatHub>("/hubs/chat");
+app.MapHub<Squadly.API.Hubs.NotificationHub>("/hubs/notifications");
 app.MapControllers();
 
 app.Run();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,228 +11,110 @@ namespace Squadly.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "GlobalRole",
-                table: "Users",
-                type: "character varying(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "User");
+            // Users columns
+            migrationBuilder.Sql(@"ALTER TABLE ""Users"" ADD COLUMN IF NOT EXISTS ""GlobalRole"" character varying(20) NOT NULL DEFAULT 'User';");
 
-            migrationBuilder.AddColumn<bool>(
-                name: "PointsAwarded",
-                table: "TaskItem",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
+            // TaskItem columns
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" ADD COLUMN IF NOT EXISTS ""PointsAwarded"" boolean NOT NULL DEFAULT false;");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" ADD COLUMN IF NOT EXISTS ""ReviewClaimedAt"" timestamp with time zone;");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" ADD COLUMN IF NOT EXISTS ""ReviewClaimedByUserId"" uuid;");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" ADD COLUMN IF NOT EXISTS ""ReviewComment"" character varying(2000);");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" ADD COLUMN IF NOT EXISTS ""ReviewedByUserId"" uuid;");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ReviewClaimedAt",
-                table: "TaskItem",
-                type: "timestamp with time zone",
-                nullable: true);
+            // Projects columns
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Category"" character varying(30) NOT NULL DEFAULT 'Other';");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Color"" character varying(20) NOT NULL DEFAULT 'indigo';");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Goal"" character varying(1000);");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Priority"" character varying(20) NOT NULL DEFAULT 'Medium';");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""StartDate"" timestamp with time zone;");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Tags"" jsonb NOT NULL DEFAULT '[]'::jsonb;");
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "ReviewClaimedByUserId",
-                table: "TaskItem",
-                type: "uuid",
-                nullable: true);
+            // TaskSubmissions table
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS ""TaskSubmissions"" (
+                    ""Id"" uuid NOT NULL,
+                    ""TaskItemId"" uuid NOT NULL,
+                    ""SubmittedByUserId"" uuid NOT NULL,
+                    ""WhatWasDone"" character varying(3000) NOT NULL,
+                    ""Links"" jsonb NOT NULL DEFAULT '[]'::jsonb,
+                    ""HoursSpent"" numeric(6,2),
+                    ""SubmissionNumber"" integer NOT NULL,
+                    ""CreatedAt"" timestamp with time zone NOT NULL,
+                    ""UpdatedAt"" timestamp with time zone,
+                    ""IsDeleted"" boolean NOT NULL,
+                    CONSTRAINT ""PK_TaskSubmissions"" PRIMARY KEY (""Id""),
+                    CONSTRAINT ""FK_TaskSubmissions_TaskItem_TaskItemId"" FOREIGN KEY (""TaskItemId"") REFERENCES ""TaskItem"" (""Id"") ON DELETE CASCADE,
+                    CONSTRAINT ""FK_TaskSubmissions_Users_SubmittedByUserId"" FOREIGN KEY (""SubmittedByUserId"") REFERENCES ""Users"" (""Id"") ON DELETE RESTRICT
+                );
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "ReviewComment",
-                table: "TaskItem",
-                type: "character varying(2000)",
-                maxLength: 2000,
-                nullable: true);
+            // Indexes
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_TaskItem_ReviewClaimedByUserId"" ON ""TaskItem"" (""ReviewClaimedByUserId"");");
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_TaskItem_ReviewedByUserId"" ON ""TaskItem"" (""ReviewedByUserId"");");
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_TaskSubmissions_SubmittedByUserId"" ON ""TaskSubmissions"" (""SubmittedByUserId"");");
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_TaskSubmissions_TaskItemId"" ON ""TaskSubmissions"" (""TaskItemId"");");
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "ReviewedByUserId",
-                table: "TaskItem",
-                type: "uuid",
-                nullable: true);
+            // Foreign keys (conditional)
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.table_constraints
+                        WHERE constraint_name = 'FK_TaskItem_Users_ReviewClaimedByUserId'
+                    ) THEN
+                        ALTER TABLE ""TaskItem"" ADD CONSTRAINT ""FK_TaskItem_Users_ReviewClaimedByUserId""
+                            FOREIGN KEY (""ReviewClaimedByUserId"") REFERENCES ""Users"" (""Id"") ON DELETE SET NULL;
+                    END IF;
+                END $$;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "Category",
-                table: "Projects",
-                type: "character varying(30)",
-                maxLength: 30,
-                nullable: false,
-                defaultValue: "Other");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Color",
-                table: "Projects",
-                type: "character varying(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "indigo");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Goal",
-                table: "Projects",
-                type: "character varying(1000)",
-                maxLength: 1000,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "Priority",
-                table: "Projects",
-                type: "character varying(20)",
-                maxLength: 20,
-                nullable: false,
-                defaultValue: "Medium");
-
-            migrationBuilder.AddColumn<DateTime>(
-                name: "StartDate",
-                table: "Projects",
-                type: "timestamp with time zone",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "Tags",
-                table: "Projects",
-                type: "jsonb",
-                nullable: false,
-                defaultValueSql: "'[]'::jsonb");
-
-            migrationBuilder.CreateTable(
-                name: "TaskSubmissions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    TaskItemId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SubmittedByUserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    WhatWasDone = table.Column<string>(type: "character varying(3000)", maxLength: 3000, nullable: false),
-                    Links = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
-                    HoursSpent = table.Column<decimal>(type: "numeric(6,2)", nullable: true),
-                    SubmissionNumber = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TaskSubmissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TaskSubmissions_TaskItem_TaskItemId",
-                        column: x => x.TaskItemId,
-                        principalTable: "TaskItem",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_TaskSubmissions_Users_SubmittedByUserId",
-                        column: x => x.SubmittedByUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskItem_ReviewClaimedByUserId",
-                table: "TaskItem",
-                column: "ReviewClaimedByUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskItem_ReviewedByUserId",
-                table: "TaskItem",
-                column: "ReviewedByUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskSubmissions_SubmittedByUserId",
-                table: "TaskSubmissions",
-                column: "SubmittedByUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskSubmissions_TaskItemId",
-                table: "TaskSubmissions",
-                column: "TaskItemId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_TaskItem_Users_ReviewClaimedByUserId",
-                table: "TaskItem",
-                column: "ReviewClaimedByUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_TaskItem_Users_ReviewedByUserId",
-                table: "TaskItem",
-                column: "ReviewedByUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.table_constraints
+                        WHERE constraint_name = 'FK_TaskItem_Users_ReviewedByUserId'
+                    ) THEN
+                        ALTER TABLE ""TaskItem"" ADD CONSTRAINT ""FK_TaskItem_Users_ReviewedByUserId""
+                            FOREIGN KEY (""ReviewedByUserId"") REFERENCES ""Users"" (""Id"") ON DELETE SET NULL;
+                    END IF;
+                END $$;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_TaskItem_Users_ReviewClaimedByUserId",
-                table: "TaskItem");
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'FK_TaskItem_Users_ReviewClaimedByUserId') THEN
+                        ALTER TABLE ""TaskItem"" DROP CONSTRAINT ""FK_TaskItem_Users_ReviewClaimedByUserId"";
+                    END IF;
+                END $$;
+            ");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_TaskItem_Users_ReviewedByUserId",
-                table: "TaskItem");
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'FK_TaskItem_Users_ReviewedByUserId') THEN
+                        ALTER TABLE ""TaskItem"" DROP CONSTRAINT ""FK_TaskItem_Users_ReviewedByUserId"";
+                    END IF;
+                END $$;
+            ");
 
-            migrationBuilder.DropTable(
-                name: "TaskSubmissions");
+            migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""TaskSubmissions"";");
+            migrationBuilder.Sql(@"DROP INDEX IF EXISTS ""IX_TaskItem_ReviewClaimedByUserId"";");
+            migrationBuilder.Sql(@"DROP INDEX IF EXISTS ""IX_TaskItem_ReviewedByUserId"";");
 
-            migrationBuilder.DropIndex(
-                name: "IX_TaskItem_ReviewClaimedByUserId",
-                table: "TaskItem");
-
-            migrationBuilder.DropIndex(
-                name: "IX_TaskItem_ReviewedByUserId",
-                table: "TaskItem");
-
-            migrationBuilder.DropColumn(
-                name: "GlobalRole",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "PointsAwarded",
-                table: "TaskItem");
-
-            migrationBuilder.DropColumn(
-                name: "ReviewClaimedAt",
-                table: "TaskItem");
-
-            migrationBuilder.DropColumn(
-                name: "ReviewClaimedByUserId",
-                table: "TaskItem");
-
-            migrationBuilder.DropColumn(
-                name: "ReviewComment",
-                table: "TaskItem");
-
-            migrationBuilder.DropColumn(
-                name: "ReviewedByUserId",
-                table: "TaskItem");
-
-            migrationBuilder.DropColumn(
-                name: "Category",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "Color",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "Goal",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "Priority",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "StartDate",
-                table: "Projects");
-
-            migrationBuilder.DropColumn(
-                name: "Tags",
-                table: "Projects");
+            migrationBuilder.Sql(@"ALTER TABLE ""Users"" DROP COLUMN IF EXISTS ""GlobalRole"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" DROP COLUMN IF EXISTS ""PointsAwarded"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" DROP COLUMN IF EXISTS ""ReviewClaimedAt"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" DROP COLUMN IF EXISTS ""ReviewClaimedByUserId"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" DROP COLUMN IF EXISTS ""ReviewComment"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""TaskItem"" DROP COLUMN IF EXISTS ""ReviewedByUserId"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" DROP COLUMN IF EXISTS ""Category"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" DROP COLUMN IF EXISTS ""Color"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" DROP COLUMN IF EXISTS ""Goal"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" DROP COLUMN IF EXISTS ""Priority"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" DROP COLUMN IF EXISTS ""StartDate"";");
+            migrationBuilder.Sql(@"ALTER TABLE ""Projects"" DROP COLUMN IF EXISTS ""Tags"";");
         }
     }
 }

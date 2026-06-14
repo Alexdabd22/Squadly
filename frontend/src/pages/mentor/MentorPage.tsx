@@ -1,340 +1,299 @@
-import { useEffect, useState, FormEvent } from 'react'
-import { GraduationCap, Users, FileText, Pencil, Trash2, ArrowLeft, Plus, Save, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Inbox, Users, Eye, Unlock, Lock, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import api from '../../api/client'
-import type { MentorProject, Mentee, MentorNote } from '../../types'
+import type { TaskItem, MentorProject } from '../../types'
+import {
+  TASK_PRIORITY_LABEL,
+  TASK_PRIORITY_BADGE,
+} from '../../constants/task'
 import { formatRelativeTime } from '../../utils/date'
-import ConfirmDialog from '../../components/common/ConfirmDialog'
-import { useConfirm } from '../../hooks/useConfirm'
+import { colorByValue } from '../../constants/project'
+import TaskDetailsModal from '../../components/tasks/TaskDetailsModal'
 
-type View = 'projects' | 'mentees' | 'notes'
+type Tab = 'review' | 'projects'
+
+interface ReviewTask {
+  id: string
+  title: string
+  description?: string
+  priority: 'Low' | 'Medium' | 'High'
+  dueDate?: string
+  createdAt: string
+  updatedAt?: string
+  project: {
+    id: string
+    title: string
+    color: string
+    category: string
+  } | null
+  assignee: {
+    id: string
+    fullName: string
+    email: string
+  } | null
+  reviewClaimedByUserId: string | null
+  reviewClaimedByName: string | null
+  reviewClaimedAt: string | null
+}
 
 export default function MentorPage() {
-  const [view, setView] = useState<View>('projects')
+  const [tab, setTab] = useState<Tab>('review')
+
+  const [reviewTasks, setReviewTasks] = useState<ReviewTask[]>([])
+  const [reviewLoading, setReviewLoading] = useState(true)
+
   const [projects, setProjects] = useState<MentorProject[]>([])
-  const [mentees, setMentees] = useState<Mentee[]>([])
-  const [notes, setNotes] = useState<MentorNote[]>([])
+  const [projectsLoading, setProjectsLoading] = useState(false)
 
-  const [selectedProject, setSelectedProject] = useState<MentorProject | null>(null)
-  const [selectedMentee, setSelectedMentee] = useState<Mentee | null>(null)
+  const [error, setError] = useState('')
+  const [detailTask, setDetailTask] = useState<TaskItem | null>(null)
 
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string>('')
+  const currentUserId = sessionStorage.getItem('userId')
+  const navigate = useNavigate()
 
-  const [noteText, setNoteText] = useState<string>('')
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
-  const [editingText, setEditingText] = useState<string>('')
-
-  const { confirm, confirmProps } = useConfirm()
+  useEffect(() => { loadReviewQueue() }, [])
 
   useEffect(() => {
-    loadProjects()
-  }, [])
+    if (tab === 'projects' && projects.length === 0) loadProjects()
+  }, [tab])
 
-  const loadProjects = async () => {
-    setLoading(true)
+  const loadReviewQueue = async () => {
+    setReviewLoading(true)
     setError('')
     try {
-      const response = await api.get<MentorProject[]>('/mentor/projects')
-      setProjects(response.data)
+      const res = await api.get<ReviewTask[]>('/mentor/review-queue')
+      setReviewTasks(res.data)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Не вдалося завантажити чергу перевірок')
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
+  const loadProjects = async () => {
+    setProjectsLoading(true)
+    try {
+      const res = await api.get<MentorProject[]>('/mentor/projects')
+      setProjects(res.data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Не вдалося завантажити проєкти')
     } finally {
-      setLoading(false)
+      setProjectsLoading(false)
     }
   }
 
-  const loadMentees = async (project: MentorProject) => {
-    setLoading(true)
-    setError('')
-    setSelectedProject(project)
+  const handleClaim = async (taskId: string) => {
     try {
-      const response = await api.get<Mentee[]>(`/mentor/projects/${project.projectId}/mentees`)
-      setMentees(response.data)
-      setView('mentees')
+      await api.post(`/tasks/${taskId}/claim-review`)
+      loadReviewQueue()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Не вдалося завантажити підопічних')
-    } finally {
-      setLoading(false)
+      setError(err.response?.data?.message || 'Не вдалося взяти на перевірку')
     }
   }
 
-  const loadNotes = async (mentee: Mentee) => {
-    if (!selectedProject) return
-    setLoading(true)
-    setError('')
-    setSelectedMentee(mentee)
+  const handleRelease = async (taskId: string) => {
     try {
-      const response = await api.get<MentorNote[]>(`/mentor/notes/${mentee.userId}/${selectedProject.projectId}`)
-      setNotes(response.data)
-      setView('notes')
+      await api.post(`/tasks/${taskId}/release-review`)
+      loadReviewQueue()
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Не вдалося завантажити нотатки')
-    } finally {
-      setLoading(false)
+      setError(err.response?.data?.message || 'Не вдалося звільнити')
     }
   }
 
-  const handleAddNote = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!noteText.trim() || !selectedProject || !selectedMentee) return
-
-    try {
-      const response = await api.post<MentorNote>('/mentor/notes', {
-        aboutUserId: selectedMentee.userId,
-        projectId: selectedProject.projectId,
-        content: noteText.trim()
-      })
-      setNotes((prev) => [response.data, ...prev])
-      setNoteText('')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Не вдалося додати нотатку')
+  const openDetails = (rt: ReviewTask) => {
+    const task: TaskItem = {
+      id: rt.id,
+      title: rt.title,
+      description: rt.description,
+      status: 'InReview',
+      priority: rt.priority,
+      project: rt.project ? { id: rt.project.id, title: rt.project.title } : undefined,
+      assignee: rt.assignee
+        ? { id: rt.assignee.id, fullName: rt.assignee.fullName, email: rt.assignee.email }
+        : undefined,
+      reviewClaimedByUserId: rt.reviewClaimedByUserId,
+      reviewClaimedByUser: rt.reviewClaimedByName
+        ? {
+            id: rt.reviewClaimedByUserId ?? '',
+            firstName: rt.reviewClaimedByName.split(' ')[0] ?? '',
+            lastName: rt.reviewClaimedByName.split(' ').slice(1).join(' ') ?? '',
+            fullName: rt.reviewClaimedByName,
+          }
+        : null,
+      reviewClaimedAt: rt.reviewClaimedAt ?? null,
+      dueDate: rt.dueDate,
+      createdAt: rt.createdAt,
     }
-  }
-
-  const startEditNote = (note: MentorNote) => {
-    setEditingNoteId(note.id)
-    setEditingText(note.content)
-  }
-
-  const cancelEditNote = () => {
-    setEditingNoteId(null)
-    setEditingText('')
-  }
-
-  const handleUpdateNote = async (noteId: string) => {
-    if (!editingText.trim()) return
-    try {
-      const response = await api.put<MentorNote>(`/mentor/notes/${noteId}`, {
-        content: editingText.trim()
-      })
-      setNotes((prev) => prev.map((n) => (n.id === noteId ? response.data : n)))
-      setEditingNoteId(null)
-      setEditingText('')
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Не вдалося оновити')
-    }
-  }
-
-  const handleDeleteNote = async (noteId: string) => {
-    const ok = await confirm({
-      title: 'Видалення нотатки',
-      message: 'Ви впевнені, що хочете видалити цю нотатку?',
-      confirmText: 'Видалити',
-      confirmVariant: 'danger',
-    })
-    if (!ok) return
-
-    try {
-      await api.delete(`/mentor/notes/${noteId}`)
-      setNotes((prev) => prev.filter((n) => n.id !== noteId))
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Не вдалося видалити')
-    }
-  }
-
-  const goBackToProjects = () => {
-    setView('projects')
-    setSelectedProject(null)
-    setSelectedMentee(null)
-    setMentees([])
-  }
-
-  const goBackToMentees = () => {
-    setView('mentees')
-    setSelectedMentee(null)
-    setNotes([])
-  }
-
-  if (loading && projects.length === 0) {
-    return <div className="p-6 text-slate-500">Завантаження...</div>
+    setDetailTask(task)
   }
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold text-slate-900">Менторство</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Центр перевірки задач та активність ваших проєктів
+        </p>
+      </div>
+
+      <div className="flex gap-1 border-b border-slate-200 mb-6">
         <button
-          onClick={goBackToProjects}
-          className={`hover:text-primary-600 ${view === 'projects' ? 'text-primary-600 font-medium' : ''}`}
+          onClick={() => setTab('review')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors inline-flex items-center gap-1.5 ${
+            tab === 'review'
+              ? 'border-primary-600 text-primary-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
         >
-          Менторство
-        </button>
-        {selectedProject && (
-          <>
-            <span>/</span>
-            <button
-              onClick={goBackToMentees}
-              className={`hover:text-primary-600 ${view === 'mentees' ? 'text-primary-600 font-medium' : ''} truncate max-w-[200px]`}
-            >
-              {selectedProject.title}
-            </button>
-          </>
-        )}
-        {selectedMentee && (
-          <>
-            <span>/</span>
-            <span className="text-primary-600 font-medium truncate max-w-[200px]">
-              {selectedMentee.fullName}
+          <Inbox className="w-4 h-4" />
+          Очікують перевірки
+          {reviewTasks.length > 0 && (
+            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
+              tab === 'review' ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {reviewTasks.length}
             </span>
-          </>
-        )}
+          )}
+        </button>
+        <button
+          onClick={() => setTab('projects')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors inline-flex items-center gap-1.5 ${
+            tab === 'projects'
+              ? 'border-primary-600 text-primary-700'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Активність по проєктах
+        </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-4 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-4 text-sm flex items-center justify-between">
           {error}
+          <button onClick={() => setError('')} className="text-red-400 hover:text-red-600">×</button>
         </div>
       )}
 
-      {/* ===== VIEW: PROJECTS ===== */}
-      {view === 'projects' && (
+      {/* ─── Очікують перевірки ─── */}
+      {tab === 'review' && (
         <>
-          <div className="flex items-center gap-3 mb-6">
-            <GraduationCap className="w-7 h-7 text-primary-600" />
-            <h1 className="text-2xl font-bold text-slate-900">Менторство</h1>
-          </div>
-
-          {projects.length === 0 ? (
+          {reviewLoading ? (
+            <div className="text-slate-500 text-sm p-4">Завантаження…</div>
+          ) : reviewTasks.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">Ви ще не є ментором у жодному проєкті</p>
-              <p className="text-xs text-slate-400 mt-2">
-                Організатор проєкту має призначити вас ментором
+              <Inbox className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+              <p className="text-slate-600 font-medium">Усе перевірено!</p>
+              <p className="text-sm text-slate-400 mt-1">
+                Немає задач, що чекають вашої перевірки
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {projects.map((project) => {
-                const progress = project.totalTasks > 0
-                  ? Math.round((project.completedTasks / project.totalTasks) * 100)
-                  : 0
-
-                return (
-                  <button
-                    key={project.projectId}
-                    onClick={() => loadMentees(project)}
-                    className="bg-white rounded-2xl border border-slate-200 p-5 text-left hover:border-primary-300 hover:shadow-md transition-all"
-                  >
-                    <h3 className="font-semibold text-slate-900 mb-1">{project.title}</h3>
-                    {project.description && (
-                      <p className="text-sm text-slate-600 line-clamp-2 mb-3">{project.description}</p>
-                    )}
-
-                    <div className="flex items-center gap-4 mb-3 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5" />
-                        {project.totalMembers} учасників
-                      </span>
-                      <span>•</span>
-                      <span>{project.totalTasks} задач</span>
-                    </div>
-
-                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-primary-500 to-primary-600 h-full"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {project.completedTasks}/{project.totalTasks} виконано ({progress}%)
-                    </p>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </>
-      )}
-
-      {view === 'mentees' && selectedProject && (
-        <>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <button
-                onClick={goBackToProjects}
-                className="text-sm text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 mb-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                До проєктів
-              </button>
-              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                <Users className="w-6 h-6 text-primary-600" />
-                Підопічні
-              </h1>
-              <p className="text-sm text-slate-500 mt-1">Проєкт: {selectedProject.title}</p>
-            </div>
-          </div>
-
-          {mentees.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <p className="text-slate-500">Поки немає підопічних у цьому проєкті</p>
-            </div>
-          ) : (
             <div className="space-y-3">
-              {mentees.map((mentee) => {
-                const progress = mentee.totalTasks > 0
-                  ? Math.round((mentee.completedTasks / mentee.totalTasks) * 100)
-                  : 0
+              {reviewTasks.map((task) => {
+                const projectColor = task.project ? colorByValue(task.project.color as any) : null
+                const isClaimed = !!task.reviewClaimedByUserId
+                const isClaimedByMe = task.reviewClaimedByUserId === currentUserId
 
                 return (
                   <div
-                    key={mentee.userId}
-                    className="bg-white rounded-2xl border border-slate-200 p-5"
+                    key={task.id}
+                    className={`relative bg-white rounded-2xl border overflow-hidden hover:shadow-md transition ${
+                      isClaimedByMe ? 'border-primary-300' : 'border-slate-200'
+                    }`}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold flex-shrink-0">
-                        {mentee.fullName[0]?.toUpperCase() || '?'}
+                    {projectColor && (
+                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${projectColor.bar}`} />
+                    )}
+
+                    <div className="p-5 pl-6">
+                      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                        <div onClick={() => openDetails(task)} className="flex-1 min-w-0 cursor-pointer">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {task.project && projectColor && (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigate(`/projects/${task.project!.id}`)
+                                }}
+                                className={`text-xs px-2 py-0.5 rounded font-medium hover:underline cursor-pointer ${projectColor.bg} ${projectColor.text}`}
+                              >
+                                {task.project.title}
+                              </span>
+                            )}
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${TASK_PRIORITY_BADGE[task.priority]}`}>
+                              {TASK_PRIORITY_LABEL[task.priority]}
+                            </span>
+                          </div>
+                          <h3 className="font-semibold text-slate-900 hover:text-primary-700">
+                            {task.title}
+                          </h3>
+                          {task.description && (
+                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                              {task.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {!isClaimed && (
+                            <button
+                              onClick={() => handleClaim(task.id)}
+                              className="inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Взяти
+                            </button>
+                          )}
+
+                          {isClaimedByMe && (
+                            <>
+                              <button
+                                onClick={() => openDetails(task)}
+                                className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Рішення
+                              </button>
+                              <button
+                                onClick={() => handleRelease(task.id)}
+                                className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium"
+                              >
+                                <Unlock className="w-4 h-4" />
+                                Відпустити
+                              </button>
+                            </>
+                          )}
+
+                          {isClaimed && !isClaimedByMe && (
+                            <div className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 px-3 py-1.5 rounded-lg text-sm">
+                              <Lock className="w-4 h-4" />
+                              {task.reviewClaimedByName} перевіряє
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <div>
-                            <p className="font-semibold text-slate-900">{mentee.fullName}</p>
-                            <p className="text-xs text-slate-500">{mentee.email}</p>
-                          </div>
-                          <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                            mentee.role === 'Organizer'
-                              ? 'bg-amber-100 text-amber-700'
-                              : mentee.role === 'Mentor'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-slate-100 text-slate-700'
-                          }`}>
-                            {mentee.role === 'Organizer' ? 'Організатор' :
-                             mentee.role === 'Mentor' ? 'Ментор' : 'Учасник'}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-2 mb-3 text-center text-xs">
-                          <div className="bg-slate-50 rounded p-2">
-                            <p className="text-slate-500">Усього</p>
-                            <p className="font-bold text-slate-900">{mentee.totalTasks}</p>
-                          </div>
-                          <div className="bg-green-50 rounded p-2">
-                            <p className="text-green-700">Виконано</p>
-                            <p className="font-bold text-green-700">{mentee.completedTasks}</p>
-                          </div>
-                          <div className="bg-blue-50 rounded p-2">
-                            <p className="text-blue-700">В роботі</p>
-                            <p className="font-bold text-blue-700">{mentee.inProgressTasks}</p>
-                          </div>
-                          <div className="bg-amber-50 rounded p-2">
-                            <p className="text-amber-700">Балів</p>
-                            <p className="font-bold text-amber-700">{mentee.totalPoints}</p>
-                          </div>
-                        </div>
-
-                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mb-3">
-                          <div
-                            className="bg-gradient-to-r from-primary-500 to-primary-600 h-full"
-                            style={{ width: `${progress}%` }}
-                          />
+                      <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
+                        <div className="flex items-center gap-3">
+                          {task.assignee && (
+                            <span className="inline-flex items-center gap-1">
+                              <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-[10px] font-semibold">
+                                {task.assignee.fullName[0]?.toUpperCase()}
+                              </div>
+                              Здав: <span className="text-slate-700 font-medium">{task.assignee.fullName}</span>
+                            </span>
+                          )}
+                          {task.updatedAt && <span>· {formatRelativeTime(task.updatedAt)}</span>}
                         </div>
 
                         <button
-                          onClick={() => loadNotes(mentee)}
-                          className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                          onClick={() => openDetails(task)}
+                          className="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1"
                         >
-                          <FileText className="w-4 h-4" />
-                          Нотатки про підопічного →
+                          Деталі
+                          <ChevronRight className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
@@ -346,122 +305,69 @@ export default function MentorPage() {
         </>
       )}
 
-      {/* ===== VIEW: NOTES ===== */}
-      {view === 'notes' && selectedMentee && selectedProject && (
+      {/* ─── Активність по проєктах ─── */}
+      {tab === 'projects' && (
         <>
-          <div className="mb-6">
-            <button
-              onClick={goBackToMentees}
-              className="text-sm text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 mb-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              До підопічних
-            </button>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-              <FileText className="w-6 h-6 text-primary-600" />
-              Приватні нотатки
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Про <strong>{selectedMentee.fullName}</strong> у проєкті <strong>{selectedProject.title}</strong>
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Нотатки видно тільки вам — це ваші особисті записи як ментора
-            </p>
-          </div>
-
-          {/* Форма додавання нотатки */}
-          <form onSubmit={handleAddNote} className="bg-white rounded-2xl border border-slate-200 p-5 mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Нова нотатка</label>
-            <textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Запишіть свої спостереження, плани або поради..."
-              rows={3}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm mb-3"
-            />
-            <button
-              type="submit"
-              disabled={!noteText.trim()}
-              className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Додати нотатку
-            </button>
-          </form>
-
-          {/* Список нотаток */}
-          {notes.length === 0 ? (
+          {projectsLoading ? (
+            <div className="text-slate-500 text-sm p-4">Завантаження…</div>
+          ) : projects.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">Нотаток поки немає</p>
-              <p className="text-xs text-slate-400 mt-1">Запишіть першу нотатку вище</p>
+              <Users className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+              <p className="text-slate-600 font-medium">Ви не ментор у жодному проєкті</p>
+              <p className="text-sm text-slate-400 mt-1">
+                Організатор має призначити вас ментором у налаштуваннях проєкту
+              </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {notes.map((note) => (
-                <div key={note.id} className="bg-white rounded-2xl border border-slate-200 p-4">
-                  {editingNoteId === note.id ? (
-                    <div>
-                      <textarea
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm mb-2"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleUpdateNote(note.id)}
-                          className="inline-flex items-center gap-1 bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-                        >
-                          <Save className="w-3.5 h-3.5" />
-                          Зберегти
-                        </button>
-                        <button
-                          onClick={cancelEditNote}
-                          className="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-medium"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                          Скасувати
-                        </button>
-                      </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {projects.map((p) => {
+                const progress = p.totalTasks > 0
+                  ? Math.round((p.completedTasks / p.totalTasks) * 100)
+                  : 0
+                return (
+                  <button
+                    key={p.projectId}
+                    onClick={() => navigate(`/mentor/project/${p.projectId}`)}
+                    className="bg-white rounded-2xl border border-slate-200 p-5 text-left hover:border-primary-300 hover:shadow-md transition group"
+                  >
+                    <h3 className="font-semibold text-slate-900 mb-1 group-hover:text-primary-700">
+                      {p.title}
+                    </h3>
+                    {p.description && (
+                      <p className="text-sm text-slate-500 line-clamp-2 mb-3">{p.description}</p>
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                      <span>{p.totalMembers} учасників</span>
+                      <span>·</span>
+                      <span>{p.totalTasks} задач</span>
                     </div>
-                  ) : (
-                    <>
-                      <p className="text-sm text-slate-800 whitespace-pre-wrap mb-2">{note.content}</p>
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>
-                          {formatRelativeTime(note.createdAt)}
-                          {note.updatedAt && note.updatedAt !== note.createdAt && (
-                            <span className="italic"> · редаговано</span>
-                          )}
-                        </span>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => startEditNote(note)}
-                            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            Редагувати
-                          </button>
-                          <button
-                            onClick={() => handleDeleteNote(note.id)}
-                            className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-medium"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Видалити
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-primary-500 to-primary-600 h-full transition-all"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1.5">
+                      {p.completedTasks}/{p.totalTasks} виконано ({progress}%)
+                    </p>
+                    <p className="text-xs text-primary-600 mt-2 font-medium inline-flex items-center gap-1">
+                      Відкрити підопічних
+                      <ChevronRight className="w-3 h-3" />
+                    </p>
+                  </button>
+                )
+              })}
             </div>
           )}
         </>
       )}
 
-      <ConfirmDialog {...confirmProps} />
+      <TaskDetailsModal
+        open={detailTask !== null}
+        task={detailTask}
+        onClose={() => { setDetailTask(null); loadReviewQueue() }}
+        onChanged={loadReviewQueue}
+      />
     </div>
   )
 }

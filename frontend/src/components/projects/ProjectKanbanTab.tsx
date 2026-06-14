@@ -23,9 +23,10 @@ interface Props {
   projectId: string
   canManage: boolean
   userRole?: string
+  onTasksLoaded?: (tasks: TaskItem[]) => void
 }
 
-export default function ProjectKanbanTab({ projectId, canManage, userRole }: Props) {
+export default function ProjectKanbanTab({ projectId, canManage, userRole, onTasksLoaded }: Props) {
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -50,15 +51,13 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
     try {
       const res = await api.get<TaskItem[]>(`/tasks?projectId=${projectId}`)
       setTasks(res.data)
+      onTasksLoaded?.(res.data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Не вдалося завантажити задачі')
     } finally {
       setLoading(false)
     }
   }
-
-  // ─── SignalR ───
-
   useEffect(() => {
     load()
     setupSignalR()
@@ -173,12 +172,18 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
 
   // ─── DnD ───
 
+  const canDragTask = (task: TaskItem): boolean => {
+    if (task.status === 'InReview' || task.status === 'Done') return false
+    return task.assignee?.id === currentUserId || canManage
+  }
+
   const handleDragStart = (e: DragEvent<HTMLDivElement>, taskId: string) => {
     e.dataTransfer.setData('text/plain', taskId)
     e.dataTransfer.effectAllowed = 'move'
   }
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>, status: TaskStatus) => {
+    if (status === 'Done' || status === 'InReview') return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     if (dragOverStatus !== status) setDragOverStatus(status)
@@ -191,12 +196,24 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
     const task = tasks.find((t) => t.id === taskId)
     if (!task || task.status === newStatus) return
 
-    if (newStatus === 'InReview') {
-      setError('Для переведення в «На перевірці» використовуйте кнопку «Здати»')
+    if (newStatus === 'Done') {
+      setError('«Виконано» встановлюється тільки через перевірку — кнопка «Рішення»')
       return
     }
-    if (task.status === 'InReview' && !isReviewer) {
-      setError('Задачу на перевірці може змінити тільки ментор або організатор')
+    if (newStatus === 'InReview') {
+      setError('Для переведення в «На перевірці» використайте кнопку «Здати»')
+      return
+    }
+    if (task.status === 'InReview') {
+      setError('Задачу на перевірці переводить тільки перевіряючий через «Рішення»')
+      return
+    }
+    if (task.status === 'Done') {
+      setError('Виконану задачу не можна повертати назад')
+      return
+    }
+    if (task.assignee?.id !== currentUserId && !canManage) {
+      setError('Перетягувати задачу може лише виконавець або організатор')
       return
     }
 
@@ -275,11 +292,11 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole }: Pro
                   return (
                     <div
                       key={task.id}
-                      draggable={status !== 'InReview'}
-                      onDragStart={(e) => handleDragStart(e, task.id)}
+                      draggable={canDragTask(task)}
+                      onDragStart={(e) => canDragTask(task) && handleDragStart(e, task.id)}
                       className={`bg-white rounded-xl border p-3 shadow-sm hover:shadow-md transition ${
                         isNeedsRevision ? 'border-amber-300' : 'border-slate-200'
-                      } ${status !== 'InReview' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      } ${canDragTask(task) ? 'cursor-grab active:cursor-grabbing' : ''}`}
                     >
                       {/* Бейдж NeedsRevision */}
                       {isNeedsRevision && (

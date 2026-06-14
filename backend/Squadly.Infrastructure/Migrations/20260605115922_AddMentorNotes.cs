@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,138 +11,82 @@ namespace Squadly.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "ProjectMessages",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AuthorUserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProjectMessages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ProjectMessages_Projects_ProjectId",
-                        column: x => x.ProjectId,
-                        principalTable: "Projects",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ProjectMessages_Users_AuthorUserId",
-                        column: x => x.AuthorUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            // Tables may already exist — use IF NOT EXISTS to be safe
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS ""ProjectMessages"" (
+                    ""Id"" uuid NOT NULL,
+                    ""ProjectId"" uuid NOT NULL,
+                    ""AuthorUserId"" uuid NOT NULL,
+                    ""Content"" character varying(2000) NOT NULL,
+                    ""CreatedAt"" timestamp with time zone NOT NULL,
+                    ""UpdatedAt"" timestamp with time zone,
+                    ""IsDeleted"" boolean NOT NULL,
+                    CONSTRAINT ""PK_ProjectMessages"" PRIMARY KEY (""Id""),
+                    CONSTRAINT ""FK_ProjectMessages_Projects_ProjectId"" FOREIGN KEY (""ProjectId"") REFERENCES ""Projects"" (""Id"") ON DELETE CASCADE,
+                    CONSTRAINT ""FK_ProjectMessages_Users_AuthorUserId"" FOREIGN KEY (""AuthorUserId"") REFERENCES ""Users"" (""Id"") ON DELETE RESTRICT
+                );
+            ");
 
-            migrationBuilder.CreateTable(
-                name: "TaskAttachments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    TaskItemId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UploadedByUserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    OriginalFileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    ContentType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    FileSize = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TaskAttachments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TaskAttachments_TaskItem_TaskItemId",
-                        column: x => x.TaskItemId,
-                        principalTable: "TaskItem",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_TaskAttachments_Users_UploadedByUserId",
-                        column: x => x.UploadedByUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_ProjectMessages_AuthorUserId"" ON ""ProjectMessages"" (""AuthorUserId"");");
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_ProjectMessages_ProjectId"" ON ""ProjectMessages"" (""ProjectId"");");
 
-            migrationBuilder.CreateTable(
-                name: "TeamMessages",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    TeamId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AuthorUserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Content = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TeamMessages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TeamMessages_Teams_TeamId",
-                        column: x => x.TeamId,
-                        principalTable: "Teams",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_TeamMessages_Users_AuthorUserId",
-                        column: x => x.AuthorUserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS ""TaskAttachments"" (
+                    ""Id"" uuid NOT NULL,
+                    ""TaskItemId"" uuid NOT NULL,
+                    ""UploadedByUserId"" uuid NOT NULL,
+                    ""FileName"" character varying(255) NOT NULL,
+                    ""OriginalFileName"" character varying(255) NOT NULL,
+                    ""ContentType"" character varying(100) NOT NULL,
+                    ""FileSize"" bigint NOT NULL,
+                    ""CreatedAt"" timestamp with time zone NOT NULL,
+                    ""UpdatedAt"" timestamp with time zone,
+                    ""IsDeleted"" boolean NOT NULL,
+                    CONSTRAINT ""PK_TaskAttachments"" PRIMARY KEY (""Id""),
+                    CONSTRAINT ""FK_TaskAttachments_TaskItem_TaskItemId"" FOREIGN KEY (""TaskItemId"") REFERENCES ""TaskItem"" (""Id"") ON DELETE CASCADE,
+                    CONSTRAINT ""FK_TaskAttachments_Users_UploadedByUserId"" FOREIGN KEY (""UploadedByUserId"") REFERENCES ""Users"" (""Id"") ON DELETE RESTRICT
+                );
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ProjectMessages_AuthorUserId",
-                table: "ProjectMessages",
-                column: "AuthorUserId");
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_TaskAttachments_TaskItemId"" ON ""TaskAttachments"" (""TaskItemId"");");
+            migrationBuilder.Sql(@"CREATE INDEX IF NOT EXISTS ""IX_TaskAttachments_UploadedByUserId"" ON ""TaskAttachments"" (""UploadedByUserId"");");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ProjectMessages_ProjectId",
-                table: "ProjectMessages",
-                column: "ProjectId");
+            // TeamMessages is only created if Teams exists; RemoveTeams migration handles cleanup
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Teams') THEN
+                        CREATE TABLE IF NOT EXISTS ""TeamMessages"" (
+                            ""Id"" uuid NOT NULL,
+                            ""TeamId"" uuid NOT NULL,
+                            ""AuthorUserId"" uuid NOT NULL,
+                            ""Content"" character varying(2000) NOT NULL,
+                            ""CreatedAt"" timestamp with time zone NOT NULL,
+                            ""UpdatedAt"" timestamp with time zone,
+                            ""IsDeleted"" boolean NOT NULL,
+                            CONSTRAINT ""PK_TeamMessages"" PRIMARY KEY (""Id""),
+                            CONSTRAINT ""FK_TeamMessages_Teams_TeamId"" FOREIGN KEY (""TeamId"") REFERENCES ""Teams"" (""Id"") ON DELETE CASCADE,
+                            CONSTRAINT ""FK_TeamMessages_Users_AuthorUserId"" FOREIGN KEY (""AuthorUserId"") REFERENCES ""Users"" (""Id"") ON DELETE RESTRICT
+                        );
+                    END IF;
+                END $$;
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskAttachments_TaskItemId",
-                table: "TaskAttachments",
-                column: "TaskItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TaskAttachments_UploadedByUserId",
-                table: "TaskAttachments",
-                column: "UploadedByUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TeamMessages_AuthorUserId",
-                table: "TeamMessages",
-                column: "AuthorUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TeamMessages_TeamId",
-                table: "TeamMessages",
-                column: "TeamId");
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'TeamMessages') THEN
+                        CREATE INDEX IF NOT EXISTS ""IX_TeamMessages_AuthorUserId"" ON ""TeamMessages"" (""AuthorUserId"");
+                        CREATE INDEX IF NOT EXISTS ""IX_TeamMessages_TeamId"" ON ""TeamMessages"" (""TeamId"");
+                    END IF;
+                END $$;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "ProjectMessages");
-
-            migrationBuilder.DropTable(
-                name: "TaskAttachments");
-
-            migrationBuilder.DropTable(
-                name: "TeamMessages");
+            migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""ProjectMessages"";");
+            migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""TaskAttachments"";");
+            migrationBuilder.Sql(@"DROP TABLE IF EXISTS ""TeamMessages"";");
         }
     }
 }

@@ -20,6 +20,7 @@ export default function LoginPage() {
       sessionStorage.setItem('token', response.data.accessToken)
       sessionStorage.setItem('userId', response.data.user.id)
       sessionStorage.setItem('globalRole', response.data.user.globalRole)
+      sessionStorage.setItem('fullName', response.data.user.fullName)
       window.dispatchEvent(new Event('authChanged'))
       navigate('/dashboard')
     } catch (err: any) {

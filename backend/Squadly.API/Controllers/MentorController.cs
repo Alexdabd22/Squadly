@@ -252,4 +252,58 @@ public class MentorController : ControllerBase
 
         return Ok(new { message = "Ментора знято" });
     }
+    [HttpGet("review-queue")]
+    public async Task<IActionResult> GetReviewQueue()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        // Проєкти де  Mentor або Organizer
+        var myProjectIds = await _db.ProjectMemberships
+            .Where(pm => pm.UserId == userId.Value
+                && (pm.Role == ProjectRole.Mentor || pm.Role == ProjectRole.Organizer))
+            .Select(pm => pm.ProjectId)
+            .ToListAsync();
+
+        if (myProjectIds.Count == 0)
+            return Ok(new List<object>());
+
+        var tasks = await _db.Tasks
+            .Where(t => t.Status == "InReview" && myProjectIds.Contains(t.ProjectId))
+            .Include(t => t.Assignee)
+            .Include(t => t.Project)
+            .Include(t => t.ReviewClaimedByUser)
+            .OrderByDescending(t => t.UpdatedAt)
+            .Select(t => new
+            {
+                id = t.Id,
+                title = t.Title,
+                description = t.Description,
+                priority = t.Priority,
+                dueDate = t.DueDate,
+                createdAt = t.CreatedAt,
+                updatedAt = t.UpdatedAt,
+                project = t.Project == null ? null : new
+                {
+                    id = t.Project.Id,
+                    title = t.Project.Title,
+                    color = t.Project.Color,
+                    category = t.Project.Category.ToString()
+                },
+                assignee = t.Assignee == null ? null : new
+                {
+                    id = t.Assignee.Id,
+                    fullName = t.Assignee.FirstName + " " + t.Assignee.LastName,
+                    email = t.Assignee.Email
+                },
+                reviewClaimedByUserId = t.ReviewClaimedByUserId,
+                reviewClaimedByName = t.ReviewClaimedByUser == null
+                    ? null
+                    : t.ReviewClaimedByUser.FirstName + " " + t.ReviewClaimedByUser.LastName,
+                reviewClaimedAt = t.ReviewClaimedAt
+            })
+            .ToListAsync();
+
+        return Ok(tasks);
+    }
 }
