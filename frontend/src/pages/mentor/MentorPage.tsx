@@ -365,6 +365,7 @@ export default function MentorPage() {
       <TaskDetailsModal
         open={detailTask !== null}
         task={detailTask}
+        userRole="Mentor"
         onClose={() => { setDetailTask(null); loadReviewQueue() }}
         onChanged={loadReviewQueue}
       />

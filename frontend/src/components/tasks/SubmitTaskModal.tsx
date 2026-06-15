@@ -35,6 +35,10 @@ export default function SubmitTaskModal({ open, taskId, taskTitle, onClose, onSu
       setError('Опис має бути не менше 10 символів')
       return
     }
+    if (links.length === 0) {
+      setError('Додайте принаймні одне посилання на виконану роботу (GitHub, Google Drive, демо тощо)')
+      return
+    }
     if (!selfChecked) {
       setError('Підтвердіть, що ви перевірили роботу')
       return
@@ -90,7 +94,9 @@ export default function SubmitTaskModal({ open, taskId, taskTitle, onClose, onSu
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Посилання</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Посилання * <span className="text-slate-400 font-normal">(хоча б одне — GitHub, Drive, демо)</span>
+            </label>
             <div className="flex gap-2">
               <input
                 type="url"
