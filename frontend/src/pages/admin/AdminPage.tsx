@@ -5,6 +5,7 @@ import api from '../../api/client'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import { useConfirm } from '../../hooks/useConfirm'
 import type { GlobalRole } from '../../types'
+import AdminChatPage from './AdminChatPage'
 
 interface AdminUser {
   id: string
@@ -37,7 +38,7 @@ interface AdminStats {
   totalTasks: number
 }
 
-type Tab = 'users' | 'projects' | 'stats'
+type Tab = 'users' | 'projects' | 'chat' | 'stats'
 
 const ROLE_LABEL: Record<GlobalRole, string> = {
   Admin: 'Адміністратор',
@@ -116,9 +117,18 @@ export default function AdminPage() {
 
   const handleRoleChange = async (user: AdminUser, newRole: GlobalRole) => {
     if (user.globalRole === newRole) return
+
+    const isDowngrade = user.globalRole === 'Organizer' && newRole === 'User'
+    const hasProjects = user.projectsCreated > 0
+
+    let message = `Змінити роль «${user.fullName}» на «${ROLE_LABEL[newRole]}»?`
+    if (isDowngrade && hasProjects) {
+      message = `Змінити роль «${user.fullName}» на «${ROLE_LABEL[newRole]}»?\n\nКористувач є організатором ${user.projectsCreated} проєкт${user.projectsCreated === 1 ? 'у' : 'ів'}. Після зниження ролі він не зможе створювати нові проєкти, але збереже доступ до вже існуючих як організатор проєкту.`
+    }
+
     const ok = await confirm({
       title: 'Зміна ролі',
-      message: `Змінити роль «${user.fullName}» на «${ROLE_LABEL[newRole]}»?`,
+      message,
       confirmText: 'Змінити',
       confirmVariant: 'danger',
     })
@@ -219,6 +229,7 @@ export default function AdminPage() {
         {([
           ['users', 'Користувачі'],
           ['projects', 'Усі проєкти'],
+          ['chat', 'Звернення'],
           ['stats', 'Статистика'],
         ] as [Tab, string][]).map(([key, label]) => (
           <button
@@ -433,6 +444,11 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* ───── ЧАТ ───── */}
+      {tab === 'chat' && (
+        <AdminChatPage />
       )}
 
       {/* ───── СТАТИСТИКА ───── */}

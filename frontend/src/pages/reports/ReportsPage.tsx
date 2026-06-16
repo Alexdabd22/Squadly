@@ -111,12 +111,19 @@ export default function ReportsPage() {
         </div>
         <div className="p-5">
           {/* Що входить */}
-          <div className="grid sm:grid-cols-3 gap-3 mb-5">
+          <div className="grid sm:grid-cols-4 gap-3 mb-5">
             <div className="flex items-start gap-2 bg-slate-50 rounded-xl p-3">
               <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-xs font-medium text-slate-700">Виконані задачі</p>
                 <p className="text-xs text-slate-500 mt-0.5">Кількість і пріоритети</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 bg-slate-50 rounded-xl p-3">
+              <Clock className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-slate-700">Витрачений час</p>
+                <p className="text-xs text-slate-500 mt-0.5">Загалом і в середньому</p>
               </div>
             </div>
             <div className="flex items-start gap-2 bg-slate-50 rounded-xl p-3">
@@ -127,10 +134,10 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="flex items-start gap-2 bg-slate-50 rounded-xl p-3">
-              <Clock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <BarChart3 className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-xs font-medium text-slate-700">Активність</p>
-                <p className="text-xs text-slate-500 mt-0.5">Коментарі, здачі, дати</p>
+                <p className="text-xs font-medium text-slate-700">Доопрацювання</p>
+                <p className="text-xs text-slate-500 mt-0.5">Скільки разів повертали</p>
               </div>
             </div>
           </div>
@@ -153,7 +160,9 @@ export default function ReportsPage() {
             <h2 className="font-semibold text-slate-900">Звіти по проєктах</h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            PDF — для презентацій та архіву · Excel — для аналізу та фільтрації
+            Включають внесок учасників: задачі, витрачений час, кількість доопрацювань, бали ·{' '}
+            <span className="font-medium">PDF</span> — для презентацій ·{' '}
+            <span className="font-medium">Excel</span> — два листи (Задачі + Внесок)
           </p>
         </div>
 

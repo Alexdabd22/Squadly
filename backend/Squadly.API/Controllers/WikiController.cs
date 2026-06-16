@@ -1,80 +1,150 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Squadly.Application.DTOs.Wiki;
+using Squadly.Application.Interfaces;
 using Squadly.Domain.Entities;
 using Squadly.Infrastructure.Persistence;
-using System.Security.Claims;
 
 namespace Squadly.API.Controllers;
 
 [ApiController]
-[Route("api/projects/{projectId:guid}/wiki")]
 [Authorize]
+[Route("api/projects/{projectId:guid}/wiki")]
 public class WikiController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IProjectAuthorizationService _auth;
 
-    public WikiController(AppDbContext db)
+    public WikiController(AppDbContext db, IProjectAuthorizationService auth)
     {
         _db = db;
+        _auth = auth;
     }
 
-    private Guid GetUserId()
+    private Guid GetUserId() => Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+    private async Task<bool> IsMember(Guid projectId)
+        => await _auth.IsMemberAsync(projectId, GetUserId());
+
+    private async Task<bool> IsOrganizer(Guid projectId)
     {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return Guid.Parse(sub!);
+        var me = GetUserId();
+        return await _db.ProjectMemberships
+            .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == me && pm.Role == ProjectRole.Organizer);
     }
 
+    // GET /api/projects/{id}/wiki — список сторінок
     [HttpGet]
-    public async Task<IActionResult> Get(Guid projectId)
+    public async Task<IActionResult> List(Guid projectId)
     {
-        var userId = GetUserId();
+        if (!await IsMember(projectId)) return StatusCode(403, new { message = "Немає доступу" });
 
-        var isMember = await _db.ProjectMemberships
-            .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId);
+        var pages = await _db.WikiPages
+            .Where(p => p.ProjectId == projectId)
+            .OrderBy(p => p.Order).ThenBy(p => p.CreatedAt)
+            .Select(p => new WikiPageListItemDto
+            {
+                Id = p.Id, Title = p.Title, Order = p.Order
+            })
+            .ToListAsync();
 
-        if (!isMember)
-            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
-
-        var project = await _db.Projects
-            .Where(p => p.Id == projectId && !p.IsDeleted)
-            .Select(p => new { p.WikiContent })
-            .FirstOrDefaultAsync();
-
-        if (project == null)
-            return NotFound(new { message = "Проєкт не знайдено" });
-
-        return Ok(new { content = project.WikiContent ?? "" });
+        return Ok(pages);
     }
 
-    [HttpPut]
-    public async Task<IActionResult> Update(Guid projectId, [FromBody] UpdateWikiDto dto)
+    // GET /api/projects/{id}/wiki/{pageId}
+    [HttpGet("{pageId:guid}")]
+    public async Task<IActionResult> GetOne(Guid projectId, Guid pageId)
     {
-        var userId = GetUserId();
+        if (!await IsMember(projectId)) return StatusCode(403, new { message = "Немає доступу" });
 
-        var membership = await _db.ProjectMemberships
-            .FirstOrDefaultAsync(pm => pm.ProjectId == projectId && pm.UserId == userId);
+        var page = await _db.WikiPages.FirstOrDefaultAsync(p => p.Id == pageId && p.ProjectId == projectId);
+        if (page == null) return NotFound();
 
-        if (membership == null)
-            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+        return Ok(new WikiPageDto
+        {
+            Id = page.Id,
+            ProjectId = page.ProjectId,
+            Title = page.Title,
+            Content = page.Content,
+            Order = page.Order,
+            CreatedAt = page.CreatedAt,
+            UpdatedAt = page.UpdatedAt,
+        });
+    }
 
-        if (membership.Role != ProjectRole.Organizer && membership.Role != ProjectRole.Mentor)
-            return StatusCode(403, new { message = "Редагувати Wiki може лише організатор або ментор" });
+    // POST /api/projects/{id}/wiki — створити сторінку (тільки організатор)
+    [HttpPost]
+    public async Task<IActionResult> Create(Guid projectId, [FromBody] CreateWikiPageDto dto)
+    {
+        if (!await IsOrganizer(projectId))
+            return StatusCode(403, new { message = "Лише організатор може створювати сторінки" });
 
-        var project = await _db.Projects
-            .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+        var nextOrder = (await _db.WikiPages.Where(p => p.ProjectId == projectId).MaxAsync(p => (int?)p.Order) ?? 0) + 1;
 
-        if (project == null)
-            return NotFound(new { message = "Проєкт не знайдено" });
+        var page = new WikiPage
+        {
+            ProjectId = projectId,
+            Title = dto.Title.Trim(),
+            Content = dto.Content?.Trim() ?? string.Empty,
+            Order = nextOrder,
+            CreatedByUserId = GetUserId(),
+        };
 
-        project.WikiContent = dto.Content?.Trim();
+        _db.WikiPages.Add(page);
         await _db.SaveChangesAsync();
 
-        return Ok(new { content = project.WikiContent ?? "" });
+        return Ok(new WikiPageDto
+        {
+            Id = page.Id,
+            ProjectId = page.ProjectId,
+            Title = page.Title,
+            Content = page.Content,
+            Order = page.Order,
+            CreatedAt = page.CreatedAt,
+        });
     }
-}
 
-public class UpdateWikiDto
-{
-    public string? Content { get; set; }
+    // PUT /api/projects/{id}/wiki/{pageId} — редагувати (організатор)
+    [HttpPut("{pageId:guid}")]
+    public async Task<IActionResult> Update(Guid projectId, Guid pageId, [FromBody] UpdateWikiPageDto dto)
+    {
+        if (!await IsOrganizer(projectId))
+            return StatusCode(403, new { message = "Лише організатор може редагувати" });
+
+        var page = await _db.WikiPages.FirstOrDefaultAsync(p => p.Id == pageId && p.ProjectId == projectId);
+        if (page == null) return NotFound();
+
+        page.Title = dto.Title.Trim();
+        page.Content = dto.Content?.Trim() ?? string.Empty;
+        page.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(new WikiPageDto
+        {
+            Id = page.Id,
+            ProjectId = page.ProjectId,
+            Title = page.Title,
+            Content = page.Content,
+            Order = page.Order,
+            CreatedAt = page.CreatedAt,
+            UpdatedAt = page.UpdatedAt,
+        });
+    }
+
+    // DELETE /api/projects/{id}/wiki/{pageId} (організатор)
+    [HttpDelete("{pageId:guid}")]
+    public async Task<IActionResult> Delete(Guid projectId, Guid pageId)
+    {
+        if (!await IsOrganizer(projectId))
+            return StatusCode(403, new { message = "Лише організатор може видаляти" });
+
+        var page = await _db.WikiPages.FirstOrDefaultAsync(p => p.Id == pageId && p.ProjectId == projectId);
+        if (page == null) return NotFound();
+
+        _db.WikiPages.Remove(page);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Сторінку видалено" });
+    }
 }

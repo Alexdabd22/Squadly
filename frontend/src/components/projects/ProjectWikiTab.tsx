@@ -1,240 +1,337 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { BookOpen, Pencil, Save, X, Info } from 'lucide-react'
+import { useEffect, useState, type ReactElement } from 'react'
+import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
 import api from '../../api/client'
+import ConfirmDialog from '../common/ConfirmDialog'
+import { useConfirm } from '../../hooks/useConfirm'
+
+interface WikiPageListItem {
+  id: string
+  title: string
+  order: number
+}
+
+interface WikiPage {
+  id: string
+  projectId: string
+  title: string
+  content: string
+  order: number
+  createdAt: string
+  updatedAt?: string
+}
 
 interface Props {
   projectId: string
-  canEdit: boolean  
-}
-function renderWiki(content: string) {
-  const lines = content.split('\n')
-  const elements: ReactNode[] = []
-  let key = 0
-
-  for (const raw of lines) {
-    const line = raw
-
-    if (line.startsWith('# ')) {
-      elements.push(
-        <h2 key={key++} className="text-xl font-bold text-slate-900 mt-6 mb-2 pb-2 border-b border-slate-200 first:mt-0">
-          {line.slice(2)}
-        </h2>
-      )
-    } else if (line.startsWith('## ')) {
-      elements.push(
-        <h3 key={key++} className="text-base font-semibold text-slate-800 mt-4 mb-1.5">
-          {line.slice(3)}
-        </h3>
-      )
-    } else if (line.startsWith('### ')) {
-      elements.push(
-        <h4 key={key++} className="text-sm font-semibold text-slate-700 mt-3 mb-1">
-          {line.slice(4)}
-        </h4>
-      )
-    } else if (line.startsWith('- ') || line.startsWith('* ')) {
-      elements.push(
-        <li key={key++} className="text-sm text-slate-700 ml-4 list-disc leading-relaxed">
-          {formatInline(line.slice(2))}
-        </li>
-      )
-    } else if (line.startsWith('> ')) {
-      elements.push(
-        <blockquote key={key++} className="border-l-4 border-primary-300 pl-4 py-1 my-2 bg-primary-50 rounded-r text-sm text-slate-700 italic">
-          {line.slice(2)}
-        </blockquote>
-      )
-    } else if (line.trim() === '') {
-      elements.push(<div key={key++} className="h-2" />)
-    } else if (line.startsWith('---')) {
-      elements.push(<hr key={key++} className="border-slate-200 my-4" />)
-    } else {
-      elements.push(
-        <p key={key++} className="text-sm text-slate-700 leading-relaxed">
-          {formatInline(line)}
-        </p>
-      )
-    }
-  }
-
-  return elements
+  isOrganizer: boolean
 }
 
-function formatInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-semibold text-slate-900">{part.slice(2, -2)}</strong>
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} className="bg-slate-100 text-primary-700 px-1 py-0.5 rounded text-xs font-mono">{part.slice(1, -1)}</code>
-    }
-    return part
-  })
-}
+const EXAMPLE_CONTENT = `# Як користуватися Wiki
 
-const PLACEHOLDER = `# Назва розділу
+Це проста сторінка з інструкцією.
 
-Введіть опис проєкту, правила роботи, корисні посилання тощо.
+## Заголовки
+Починайте рядок з # для великого заголовка, ## для меншого.
 
-## Правила роботи
-- Задачі беруться в роботу через Kanban-дошку
-- Здача задачі — через кнопку «Здати»
-- Питання — в чаті проєкту
+## Списки
+- перший пункт
+- другий пункт
+- третій пункт
 
-## Корисні посилання
-- [Назва посилання](https://example.com)
+## Виділення важливого
+Просто пишіть текст звичайними реченнями.
+Натискайте Enter для нового рядка.
 
-> Підказка: використовуй # для заголовків, ** для **жирного**, \`код\` для коду`
+Лишайте порожній рядок між абзацами — так буде читабельніше.`
 
-export default function ProjectWikiTab({ projectId, canEdit }: Props) {
-  const [content, setContent] = useState<string>('')
-  const [editContent, setEditContent] = useState<string>('')
+export default function ProjectWikiTab({ projectId, isOrganizer }: Props) {
+  const [pages, setPages] = useState<WikiPageListItem[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [page, setPage] = useState<WikiPage | null>(null)
   const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ title: '', content: '' })
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [newTitle, setNewTitle] = useState('')
+
+  const { confirm, confirmProps } = useConfirm()
+
+  useEffect(() => { loadList() }, [projectId])
 
   useEffect(() => {
-    loadWiki()
-  }, [projectId])
+    if (activeId) loadPage(activeId)
+    else { setPage(null); setEditing(false) }
+  }, [activeId])
 
-  const loadWiki = async () => {
+  const loadList = async () => {
     setLoading(true)
     try {
-      const res = await api.get<{ content: string }>(`/projects/${projectId}/wiki`)
-      setContent(res.data.content)
-    } catch {
-      setContent('')
+      const res = await api.get<WikiPageListItem[]>(`/projects/${projectId}/wiki`)
+      setPages(res.data)
+      if (res.data.length > 0 && (!activeId || !res.data.some((p) => p.id === activeId))) {
+        setActiveId(res.data[0].id)
+      } else if (res.data.length === 0) {
+        setActiveId(null)
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Не вдалося завантажити')
     } finally {
       setLoading(false)
     }
   }
 
-  const startEdit = () => {
-    setEditContent(content || PLACEHOLDER)
-    setEditing(true)
-    setError('')
-  }
-
-  const cancelEdit = () => {
-    setEditing(false)
-    setError('')
-  }
-
-  const save = async () => {
-    setSaving(true)
-    setError('')
+  const loadPage = async (id: string) => {
     try {
-      const res = await api.put<{ content: string }>(`/projects/${projectId}/wiki`, {
-        content: editContent,
-      })
-      setContent(res.data.content)
+      const res = await api.get<WikiPage>(`/projects/${projectId}/wiki/${id}`)
+      setPage(res.data)
+      setForm({ title: res.data.title, content: res.data.content })
       setEditing(false)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Не вдалося зберегти')
-    } finally {
-      setSaving(false)
+      setError(err.response?.data?.message || 'Не вдалося завантажити сторінку')
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-slate-500 p-4">Завантаження Wiki...</div>
+  const handleCreate = async () => {
+    if (!newTitle.trim()) return
+    try {
+      const res = await api.post<WikiPage>(`/projects/${projectId}/wiki`, {
+        title: newTitle.trim(),
+        content: '',
+      })
+      setNewTitle('')
+      await loadList()
+      setActiveId(res.data.id)
+      setEditing(true)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Не вдалося створити')
+    }
   }
+
+  const handleSave = async () => {
+    if (!page || !form.title.trim()) return
+    try {
+      const res = await api.put<WikiPage>(`/projects/${projectId}/wiki/${page.id}`, form)
+      setPage(res.data)
+      setPages((prev) => prev.map((p) => p.id === res.data.id ? { ...p, title: res.data.title } : p))
+      setEditing(false)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Не вдалося зберегти')
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!page) return
+    const ok = await confirm({
+      title: 'Видалення сторінки',
+      message: `Видалити «${page.title}»?`,
+      confirmText: 'Видалити',
+      confirmVariant: 'danger',
+    })
+    if (!ok) return
+    try {
+      await api.delete(`/projects/${projectId}/wiki/${page.id}`)
+      setActiveId(null)
+      await loadList()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Не вдалося видалити')
+    }
+  }
+
+  if (loading) return <div className="text-slate-500 text-sm p-4">Завантаження…</div>
 
   return (
     <div>
-      {/* Шапка вкладки */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-slate-900">Wiki проєкту</h2>
-          <span className="text-xs text-slate-400">— документація та довідник для команди</span>
-        </div>
-        {canEdit && !editing && (
-          <button
-            onClick={startEdit}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-slate-200 text-slate-600 rounded-lg hover:border-primary-400 hover:text-primary-700 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Редагувати
-          </button>
-        )}
-        {editing && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={cancelEdit}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50"
-            >
-              <X className="w-3.5 h-3.5" />
-              Скасувати
-            </button>
-            <button
-              onClick={save}
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50 shadow-sm"
-            >
-              <Save className="w-3.5 h-3.5" />
-              {saving ? 'Збереження...' : 'Зберегти'}
-            </button>
-          </div>
-        )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-3 text-sm">{error}</div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
+        {/* ── Бокове меню ── */}
+        <aside className="bg-white rounded-2xl border border-slate-200 p-3 h-fit">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase px-2 mb-2">Розділи</h3>
+
+          {pages.length === 0 ? (
+            <p className="text-sm text-slate-400 px-2 py-4">Розділів ще немає</p>
+          ) : (
+            <ul className="space-y-1 mb-3">
+              {pages.map((p) => (
+                <li key={p.id}>
+                  <button
+                    onClick={() => setActiveId(p.id)}
+                    className={`w-full text-left px-2 py-1.5 rounded-lg text-sm flex items-center gap-2 transition ${
+                      activeId === p.id
+                        ? 'bg-primary-50 text-primary-700 font-medium'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{p.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {isOrganizer && (
+            <div className="border-t border-slate-100 pt-2 flex gap-1">
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                placeholder="Новий розділ…"
+                maxLength={200}
+                className="flex-1 px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <button
+                onClick={handleCreate}
+                disabled={!newTitle.trim()}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-2 rounded-lg disabled:opacity-50"
+                title="Додати"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </aside>
+
+        {/* ── Контент ── */}
+        <section className="bg-white rounded-2xl border border-slate-200 p-6 min-h-[400px]">
+          {!page ? (
+            <div className="text-center text-slate-400 py-16">
+              <FileText className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+              <p className="text-sm">
+                {isOrganizer ? 'Створіть перший розділ зліва' : 'Розділів поки немає'}
+              </p>
+            </div>
+          ) : editing ? (
+            <div>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Назва розділу"
+                maxLength={200}
+                className="w-full text-2xl font-bold text-slate-900 border-0 border-b border-slate-200 focus:outline-none focus:border-primary-500 pb-2 mb-4"
+              />
+
+              <textarea
+                value={form.content}
+                onChange={(e) => setForm({ ...form, content: e.target.value })}
+                placeholder={EXAMPLE_CONTENT}
+                rows={18}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y leading-relaxed"
+              />
+
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-900">
+                <p className="font-semibold mb-1">Як форматувати текст</p>
+                <ul className="space-y-0.5 text-blue-800">
+                  <li>• Рядок з <code className="bg-white px-1 rounded">#</code> на початку — великий заголовок</li>
+                  <li>• Рядок з <code className="bg-white px-1 rounded">##</code> — менший заголовок</li>
+                  <li>• Рядок з <code className="bg-white px-1 rounded">-</code> на початку — пункт списку</li>
+                  <li>• Просто пишіть текст. Порожній рядок розділяє абзаци</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={handleSave}
+                  disabled={!form.title.trim()}
+                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  Зберегти
+                </button>
+                <button
+                  onClick={() => { setEditing(false); setForm({ title: page.title, content: page.content }) }}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Скасувати
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                <h2 className="text-2xl font-bold text-slate-900 break-words flex-1">{page.title}</h2>
+                {isOrganizer && (
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+                      title="Редагувати"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      title="Видалити"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {page.content.trim() === '' ? (
+                <p className="text-slate-400 italic text-sm">Розділ ще порожній</p>
+              ) : (
+                <FormattedContent text={page.content} />
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 mb-4 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Режим редагування */}
-      {editing ? (
-        <div className="space-y-3">
-          {/* Підказка */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 flex items-start gap-2">
-            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>
-              <strong># Заголовок</strong>, <strong>## Підзаголовок</strong>, <strong>- пункт списку</strong>,{' '}
-              <strong>**жирний**</strong>, <strong>`код`</strong>, <strong>{'>'} цитата</strong>, <strong>---</strong> роздільник
-            </span>
-          </div>
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            rows={24}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-mono leading-relaxed resize-y bg-white"
-            placeholder={PLACEHOLDER}
-          />
-        </div>
-      ) : content ? (
-        /* Режим перегляду */
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 min-h-[300px]">
-          <div className="prose-like">
-            {renderWiki(content)}
-          </div>
-        </div>
-      ) : (
-        /* Порожня Wiki */
-        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-16 text-center">
-          <BookOpen className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-          <h3 className="text-base font-semibold text-slate-600 mb-1">Wiki ще порожня</h3>
-          <p className="text-sm text-slate-400 mb-4 max-w-sm mx-auto">
-            Тут можна зберігати документацію, правила роботи, корисні посилання та будь-яку довідкову інформацію для команди
-          </p>
-          {canEdit && (
-            <button
-              onClick={startEdit}
-              className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium"
-            >
-              <Pencil className="w-4 h-4" />
-              Створити першу сторінку
-            </button>
-          )}
-          {!canEdit && (
-            <p className="text-xs text-slate-400">Організатор або ментор може додати документацію</p>
-          )}
-        </div>
-      )}
+      <ConfirmDialog {...confirmProps} />
     </div>
   )
+}
+
+function FormattedContent({ text }: { text: string }) {
+  const lines = text.split('\n')
+  const out: ReactElement[] = []
+  let listBuffer: string[] = []
+  let paragraphBuffer: string[] = []
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return
+    out.push(
+      <ul key={`ul-${out.length}`} className="list-disc pl-5 my-2 space-y-1 text-slate-800">
+        {listBuffer.map((item, i) => <li key={i}>{item}</li>)}
+      </ul>
+    )
+    listBuffer = []
+  }
+  const flushParagraph = () => {
+    if (paragraphBuffer.length === 0) return
+    out.push(
+      <p key={`p-${out.length}`} className="text-slate-800 my-2 leading-relaxed whitespace-pre-line">
+        {paragraphBuffer.join('\n')}
+      </p>
+    )
+    paragraphBuffer = []
+  }
+  const flushAll = () => { flushList(); flushParagraph() }
+
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (line.startsWith('## ')) {
+      flushAll()
+      out.push(<h3 key={`h3-${out.length}`} className="text-lg font-semibold text-slate-900 mt-5 mb-2">{line.slice(3)}</h3>)
+    } else if (line.startsWith('# ')) {
+      flushAll()
+      out.push(<h2 key={`h2-${out.length}`} className="text-xl font-bold text-slate-900 mt-6 mb-2">{line.slice(2)}</h2>)
+    } else if (line.startsWith('- ')) {
+      flushParagraph()
+      listBuffer.push(line.slice(2))
+    } else if (line === '') {
+      flushAll()
+    } else {
+      flushList()
+      paragraphBuffer.push(raw)
+    }
+  }
+  flushAll()
+
+  return <div className="text-sm">{out}</div>
 }

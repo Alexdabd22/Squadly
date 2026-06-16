@@ -50,6 +50,11 @@ export default function NotificationBell() {
       setCount(newCount)
     })
 
+    connection.on('GlobalRoleChanged', (newRole: string) => {
+      sessionStorage.setItem('globalRole', newRole)
+      window.dispatchEvent(new Event('authChanged'))
+    })
+
     try {
       await connection.start()
       connectionRef.current = connection

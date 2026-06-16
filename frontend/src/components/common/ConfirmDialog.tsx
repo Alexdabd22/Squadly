@@ -39,7 +39,7 @@ export default function ConfirmDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
-        <p className="text-sm text-slate-600 mb-6">{message}</p>
+        <p className="text-sm text-slate-600 mb-6 whitespace-pre-line">{message}</p>
 
         <div className="flex justify-end gap-2">
           <button

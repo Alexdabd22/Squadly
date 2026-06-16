@@ -35,21 +35,33 @@ export default function SubmitTaskModal({ open, taskId, taskTitle, onClose, onSu
       setError('Опис має бути не менше 10 символів')
       return
     }
-    if (links.length === 0) {
-      setError('Додайте принаймні одне посилання на виконану роботу (GitHub, Google Drive, демо тощо)')
-      return
+
+    let hours: number | null = null
+    if (hoursSpent.trim()) {
+      const parsed = parseFloat(hoursSpent.replace(',', '.'))
+      if (isNaN(parsed) || parsed <= 0) {
+        setError('Кількість годин має бути додатнім числом')
+        return
+      }
+      if (parsed > 24) {
+        setError('Занадто велике значення.')
+        return
+      }
+      hours = parsed
     }
+
     if (!selfChecked) {
       setError('Підтвердіть, що ви перевірили роботу')
       return
     }
+
     setLoading(true)
     setError('')
     try {
       await api.post(`/tasks/${taskId}/submit`, {
         whatWasDone: whatWasDone.trim(),
         links,
-        hoursSpent: hoursSpent ? parseFloat(hoursSpent) : null,
+        hoursSpent: hours,
         selfChecked,
       })
       onSubmitted()
@@ -93,9 +105,14 @@ export default function SubmitTaskModal({ open, taskId, taskTitle, onClose, onSu
             <p className="text-xs text-slate-400 mt-1">{whatWasDone.length}/3000</p>
           </div>
 
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+            <strong>Файли</strong> прикріплюйте у вкладці «Файли» задачі — вони будуть видимі менторові під час перевірки.
+            Тут вкажіть посилання на репозиторій, демо або документи (необов'язково, якщо є файли).
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Посилання * <span className="text-slate-400 font-normal">(хоча б одне — GitHub, Drive, демо)</span>
+              Посилання <span className="text-slate-400 font-normal">(GitHub, Drive, демо)</span>
             </label>
             <div className="flex gap-2">
               <input
@@ -128,12 +145,13 @@ export default function SubmitTaskModal({ open, taskId, taskTitle, onClose, onSu
               type="number"
               step="0.5"
               min="0.1"
-              max="999"
+              max="24"
               value={hoursSpent}
               onChange={(e) => setHoursSpent(e.target.value)}
               placeholder="наприклад, 2.5"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
+            <p className="text-xs text-slate-400 mt-1">Опційно. Максимум 24 годин на одну задачу</p>
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">

@@ -20,6 +20,8 @@ import RootRedirect from "./pages/RootRedirect";
 import AuthGuard from "./components/common/AuthGuard";
 import CalendarPage from "./pages/calendar/CalendarPage";
 import MentorProjectPage from "./pages/mentor/MentorProjectPage";
+import UserProfilePage from "./pages/profile/UserProfilePage";
+import AdminChatWidget from "./components/common/AdminChatWidget";
 
 const PRIMARY_LINKS = [
   { to: "/dashboard", label: "Головна" },
@@ -268,6 +270,7 @@ export default function App() {
         <Route path="/projects/:id" element={<AuthGuard><ProjectDetailsPage /></AuthGuard>} />
         <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
         <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+        <Route path="/users/:id" element={<AuthGuard><UserProfilePage /></AuthGuard>} />
         <Route path="/notifications" element={<AuthGuard><NotificationsPage /></AuthGuard>} />
         <Route path="/leaderboard" element={<AuthGuard><LeaderboardPage /></AuthGuard>} />
         <Route path="/analytics" element={<AuthGuard><AnalyticsPage /></AuthGuard>} />
@@ -278,6 +281,7 @@ export default function App() {
         <Route path="/admin" element={<AuthGuard><AdminPage /></AuthGuard>} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      <AdminChatWidget />
     </BrowserRouter>
   );
 }

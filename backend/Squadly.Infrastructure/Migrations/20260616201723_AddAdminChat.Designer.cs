@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Squadly.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Squadly.Infrastructure.Persistence;
 namespace Squadly.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260616201723_AddAdminChat")]
+    partial class AddAdminChat
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -620,48 +623,6 @@ namespace Squadly.Infrastructure.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("Squadly.Domain.Entities.WikiPage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("ProjectId", "Order");
-
-                    b.ToTable("WikiPages");
-                });
-
             modelBuilder.Entity("Squadly.Domain.Entities.AdminChatMessage", b =>
                 {
                     b.HasOne("Squadly.Domain.Entities.User", "Sender")
@@ -866,25 +827,6 @@ namespace Squadly.Infrastructure.Migrations
                     b.Navigation("SubmittedByUser");
 
                     b.Navigation("TaskItem");
-                });
-
-            modelBuilder.Entity("Squadly.Domain.Entities.WikiPage", b =>
-                {
-                    b.HasOne("Squadly.Domain.Entities.User", "CreatedBy")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Squadly.Domain.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedBy");
-
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Squadly.Domain.Entities.Project", b =>

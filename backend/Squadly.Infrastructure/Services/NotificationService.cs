@@ -19,6 +19,7 @@ public interface INotificationService
 public interface IRealtimeNotifier
 {
     Task PushUnreadCountAsync(Guid userId, int count);
+    Task PushGlobalRoleChangedAsync(Guid userId, string newRole);
 }
 
 public class NotificationService : INotificationService

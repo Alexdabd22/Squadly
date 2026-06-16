@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Squadly.Application.DTOs.Admin;
 using Squadly.Domain.Entities;
 using Squadly.Infrastructure.Persistence;
+using Squadly.Infrastructure.Services;
 
 namespace Squadly.API.Controllers;
 
@@ -14,10 +15,12 @@ namespace Squadly.API.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IRealtimeNotifier _notifier;
 
-    public AdminController(AppDbContext db)
+    public AdminController(AppDbContext db, IRealtimeNotifier notifier)
     {
         _db = db;
+        _notifier = notifier;
     }
 
     private Guid GetUserId() => Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
@@ -64,6 +67,8 @@ public class AdminController : ControllerBase
         user.GlobalRole = newRole;
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        await _notifier.PushGlobalRoleChangedAsync(id, user.GlobalRole.ToString());
 
         return Ok(new
         {
