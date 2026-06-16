@@ -1,0 +1,23 @@
+{
+  "name": "squadly",
+  "version": "1.0.0",
+  "description": "Вебплатформа для організації групових проєктів.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently -n \"BACK,FRONT\" -c \"blue,green\" \"npm run dev:back\" \"npm run dev:front\"",
+    "dev:back": "cd backend/Squadly.API && dotnet run",
+    "dev:front": "cd frontend && npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.ztu.edu.ua/ipz/2022-2026/ipz-22-4/pastukhov-oleksandr/sqaudly.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
