@@ -52,17 +52,11 @@ export default function TaskDetailsModal({ open, task, onClose, onChanged, userR
     try {
       const [subsRes, taskRes] = await Promise.all([
         api.get<TaskSubmission[]>(`/tasks/${task.id}/submissions`),
-        api.get<TaskItem[]>(`/tasks?projectId=${task.project?.id ?? ''}`),
+        api.get<TaskItem>(`/tasks/${task.id}`),
       ])
       setSubmissions(subsRes.data)
-
-      const updated = taskRes.data.find((t) => t.id === task.id)
-      if (updated) {
-        setFresh(updated)
-        setComments(updated.comments ?? [])
-      } else {
-        setComments(task.comments ?? [])
-      }
+      setFresh(taskRes.data)
+      setComments(taskRes.data.comments ?? [])
     } catch {
       setComments(task.comments ?? [])
     } finally {

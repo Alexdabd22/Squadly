@@ -213,7 +213,7 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole, onTas
       return
     }
     if (task.assignee?.id !== currentUserId && !canManage) {
-      setError('Перетягувати задачу може лише виконавець або організатор')
+      setError('Перетягувати задачу може лише виконавець, ментор або організатор')
       return
     }
 
@@ -273,7 +273,7 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole, onTas
                   {TASK_STATUS_LABEL[status]}{' '}
                   <span className="text-slate-400 font-normal">({columnTasks.length})</span>
                 </h3>
-                {status !== 'InReview' && status !== 'Done' && (
+                {canManage && status !== 'InReview' && status !== 'Done' && (
                   <button onClick={() => openCreate(status)} className="text-slate-400 hover:text-primary-600" title="Додати задачу">
                     <Plus className="w-4 h-4" />
                   </button>
@@ -391,11 +391,13 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole, onTas
                         )}
 
                         {/* Редагувати / Видалити */}
-                        <button onClick={() => openEdit(task)} className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 ml-auto">
-                          <Pencil className="w-3 h-3" />
-                        </button>
                         {canManage && (
-                          <button onClick={() => handleDelete(task)} className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1">
+                          <button onClick={() => openEdit(task)} className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1 ml-auto">
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                        {userRole === 'Organizer' && (
+                          <button onClick={() => handleDelete(task)} className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1 ml-auto">
                             <Trash2 className="w-3 h-3" />
                           </button>
                         )}

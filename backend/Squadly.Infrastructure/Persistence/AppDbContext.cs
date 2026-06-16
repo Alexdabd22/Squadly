@@ -18,7 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
     public DbSet<MentorNote> MentorNotes => Set<MentorNote>();
     public DbSet<TaskSubmission> TaskSubmissions => Set<TaskSubmission>();
-
+    public DbSet<AdminChatMessage> AdminChatMessages => Set<AdminChatMessage>();
+    public DbSet<WikiPage> WikiPages => Set<WikiPage>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -287,6 +288,38 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(n => new { n.MentorUserId, n.ProjectId });
             entity.HasIndex(n => new { n.MentorUserId, n.AboutUserId, n.ProjectId });
+        });
+        modelBuilder.Entity<AdminChatMessage>(e =>
+        {
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.CreatedAt);
+            e.Property(x => x.Content).HasMaxLength(4000).IsRequired();
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Sender)
+                .WithMany()
+                .HasForeignKey(x => x.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<WikiPage>(e =>
+        {
+            e.HasIndex(x => new { x.ProjectId, x.Order });
+            e.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Content).HasColumnType("text");
+
+            e.HasOne(x => x.Project)
+                .WithMany()
+                .HasForeignKey(x => x.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.CreatedBy)
+                .WithMany()
+                .HasForeignKey(x => x.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

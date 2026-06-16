@@ -76,6 +76,32 @@ public class TasksController : ControllerBase
         return Ok(tasks);
     }
 
+    // ───────────────────── GET BY ID ─────────────────────
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var userId = GetUserId();
+
+        var task = await _db.Tasks
+            .Include(t => t.Assignee)
+            .Include(t => t.Project)
+            .Include(t => t.ReviewClaimedByUser)
+            .Include(t => t.Comments!)
+                .ThenInclude(c => c.Author)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (task == null) return NotFound(new { message = "Задачу не знайдено" });
+
+        try { await _auth.EnsureMemberAsync(task.ProjectId, userId); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+
+        if (task.Comments != null)
+            task.Comments = task.Comments.OrderBy(c => c.CreatedAt).ToList();
+
+        return Ok(task);
+    }
+
     // ───────────────────── CREATE ─────────────────────
 
     [HttpPost]
@@ -90,8 +116,12 @@ public class TasksController : ControllerBase
         if (!projectExists)
             return BadRequest(new { message = "Проєкт не знайдено" });
 
-        try { await _auth.EnsureMemberAsync(dto.ProjectId, userId); }
-        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        var creatorMembership = await _db.ProjectMemberships
+            .FirstOrDefaultAsync(pm => pm.ProjectId == dto.ProjectId && pm.UserId == userId);
+        if (creatorMembership == null)
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+        if (creatorMembership.Role != ProjectRole.Organizer && creatorMembership.Role != ProjectRole.Mentor)
+            return StatusCode(403, new { message = "Створювати задачі може лише організатор або ментор" });
 
         if (dto.AssigneeUserId.HasValue)
         {
@@ -142,8 +172,34 @@ public class TasksController : ControllerBase
         var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
         if (task == null) return NotFound(new { message = "Завдання не знайдено" });
 
-        try { await _auth.EnsureMemberAsync(task.ProjectId, userId); }
-        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        var membership = await _db.ProjectMemberships
+            .FirstOrDefaultAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId);
+        if (membership == null)
+            return StatusCode(403, new { message = "Ви не є учасником цього проєкту" });
+
+        bool isManager = membership.Role == ProjectRole.Organizer || membership.Role == ProjectRole.Mentor;
+
+        if (!isManager)
+        {
+            if (task.AssigneeUserId != userId)
+                return StatusCode(403, new { message = "Змінювати задачу може лише організатор, ментор або призначений виконавець" });
+
+            if (dto.Status != "ToDo" && dto.Status != "InProgress")
+                return BadRequest(new { message = "Учасник може переводити задачу лише між «До виконання» та «В роботі»" });
+
+            var prevSt = task.Status;
+            task.Status = dto.Status;
+            task.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            if (prevSt != dto.Status)
+            {
+                await _hub.Clients.Group($"project-{task.ProjectId}")
+                    .SendAsync("TaskStatusChanged", new { taskId = task.Id, status = task.Status });
+            }
+
+            return Ok(task);
+        }
 
         if (string.IsNullOrWhiteSpace(dto.Title))
             return BadRequest(new { message = "Назва задачі обов'язкова" });

@@ -112,6 +112,7 @@ app.UseAuthorization();
 
 app.MapHub<Squadly.API.Hubs.ChatHub>("/hubs/chat");
 app.MapHub<Squadly.API.Hubs.NotificationHub>("/hubs/notifications");
+app.MapHub<Squadly.API.Hubs.AdminChatHub>("/hubs/admin-chat");
 app.MapControllers();
 
 app.Run();

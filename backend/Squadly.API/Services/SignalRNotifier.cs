@@ -19,4 +19,11 @@ public class SignalRNotifier : IRealtimeNotifier
             .User(userId.ToString())
             .SendAsync("UnreadCountChanged", count);
     }
+
+    public async Task PushGlobalRoleChangedAsync(Guid userId, string newRole)
+    {
+        await _hub.Clients
+            .User(userId.ToString())
+            .SendAsync("GlobalRoleChanged", newRole);
+    }
 }

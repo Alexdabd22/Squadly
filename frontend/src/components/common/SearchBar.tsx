@@ -5,7 +5,7 @@ import api from '../../api/client'
 
 interface SearchResults {
   projects: { id: string; title: string; description: string; type: string }[]
-  tasks: { id: string; title: string; status: string; priority: string; projectTitle: string; type: string }[]
+  tasks: { id: string; title: string; status: string; priority: string; projectId: string; projectTitle: string; type: string }[]
   users: { id: string; fullName: string; email: string; type: string }[]
 }
 
@@ -127,7 +127,7 @@ export default function SearchBar() {
               {results.projects.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => handleNavigate('/projects')}
+                  onClick={() => handleNavigate(`/projects/${p.id}`)}
                   className="w-full px-4 py-2 hover:bg-slate-50 flex items-center gap-3 text-left"
                 >
                   <FolderOpen className="w-4 h-4 text-primary-500 flex-shrink-0" />
@@ -151,7 +151,7 @@ export default function SearchBar() {
               {results.tasks.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => handleNavigate('/tasks')}
+                  onClick={() => handleNavigate(`/projects/${t.projectId}`)}
                   className="w-full px-4 py-2 hover:bg-slate-50 flex items-center gap-3 text-left"
                 >
                   <CheckSquare className="w-4 h-4 text-blue-500 flex-shrink-0" />
@@ -176,7 +176,7 @@ export default function SearchBar() {
               {results.users.map((u) => (
                 <button
                   key={u.id}
-                  onClick={() => handleNavigate('/leaderboard')}
+                  onClick={() => handleNavigate(`/users/${u.id}`)}
                   className="w-full px-4 py-2 hover:bg-slate-50 flex items-center gap-3 text-left"
                 >
                   <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-semibold flex-shrink-0">

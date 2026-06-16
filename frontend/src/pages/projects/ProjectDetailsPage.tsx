@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-ArrowLeft,
+  ArrowLeft,
   LayoutGrid,
   Users,
   MessageCircle,
@@ -9,12 +9,13 @@ ArrowLeft,
   FileText,
   Pencil,
   Calendar,
+  CalendarDays,
   Target,
   List,
   BookOpen,
-  Archive,         
-  CheckCircle2,    
-  RotateCcw,       
+  Archive,
+  CheckCircle2,
+  RotateCcw,
   ChevronDown,
 } from 'lucide-react'
 import api from '../../api/client'
@@ -27,19 +28,21 @@ import {
   daysUntil,
 } from '../../constants/project'
 import Chat from '../../components/common/Chat'
-import ProjectMembersModal from '../../components/common/ProjectMembersModal'
 import ProjectWizard from '../../components/projects/ProjectWizard'
+import ProjectMembersInline from '../../components/projects/ProjectMembersInline'
 import ProjectKanbanTab from '../../components/projects/ProjectKanbanTab'
 import ProjectAnalyticsTab from '../../components/projects/ProjectAnalyticsTab'
 import ProjectReportTab from '../../components/projects/ProjectReportTab'
 import ProjectTaskListView from '../../components/projects/ProjectTaskListView'
 import ProjectWikiTab from '../../components/projects/ProjectWikiTab'
+import ProjectCalendarTab from '../../components/projects/ProjectCalendarTab'
 import type { TaskItem } from '../../types'
 
-type Tab = 'tasks' | 'members' | 'chat' | 'analytics' | 'report' | 'wiki'
+type Tab = 'tasks' | 'calendar' | 'members' | 'chat' | 'analytics' | 'report' | 'wiki'
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { key: 'tasks', label: 'Задачі', icon: LayoutGrid },
+  { key: 'calendar', label: 'Календар', icon: CalendarDays },
   { key: 'members', label: 'Учасники', icon: Users },
   { key: 'chat', label: 'Чат', icon: MessageCircle },
   { key: 'analytics', label: 'Аналітика', icon: BarChart3 },
@@ -55,7 +58,6 @@ export default function ProjectDetailsPage() {
   const [error, setError] = useState('')
   const [tab, setTab] = useState<Tab>('tasks')
 
-  const [membersModalOpen, setMembersModalOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
@@ -103,6 +105,7 @@ export default function ProjectDetailsPage() {
   const CategoryIcon = category.icon
   const days = daysUntil(project.deadline)
   const isOrganizer = project.currentUserRole === 'Organizer'
+  const isMentor = project.currentUserRole === 'Mentor'
 
   const handleEditSubmit = async (data: any) => {
     setEditLoading(true)
@@ -332,7 +335,7 @@ export default function ProjectDetailsPage() {
           {taskViewMode === 'kanban' ? (
             <ProjectKanbanTab
               projectId={project.id}
-              canManage={isOrganizer}
+              canManage={isOrganizer || isMentor}
               userRole={project.currentUserRole}
               onTasksLoaded={setAllTasks}
             />
@@ -345,20 +348,16 @@ export default function ProjectDetailsPage() {
         </div>
       )}
 
+      {tab === 'calendar' && (
+        <ProjectCalendarTab projectId={project.id} userRole={project.currentUserRole} />
+      )}
+
       {tab === 'members' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <p className="text-sm text-slate-600 mb-3">
-            Керування учасниками проєкту. {isOrganizer
-              ? 'Як організатор, ви можете додавати, видаляти учасників і змінювати їхні ролі.'
-              : 'Тільки організатор може керувати учасниками.'}
-          </p>
-          <button
-            onClick={() => setMembersModalOpen(true)}
-            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-          >
-            Відкрити список учасників
-          </button>
-        </div>
+        <ProjectMembersInline
+          projectId={project.id}
+          isOrganizer={isOrganizer}
+          onChanged={load}
+        />
       )}
 
       {tab === 'chat' && (
@@ -374,22 +373,11 @@ export default function ProjectDetailsPage() {
       {tab === 'wiki' && (
         <ProjectWikiTab
           projectId={project.id}
-          canEdit={project.currentUserRole === 'Organizer' || project.currentUserRole === 'Mentor'}
+          isOrganizer={isOrganizer}
         />
       )}
 
       {/* Модалки */}
-      {membersModalOpen && (
-        <ProjectMembersModal
-          projectId={project.id}
-          projectTitle={project.title}
-          onClose={() => {
-            setMembersModalOpen(false)
-            load() 
-          }}
-        />
-      )}
-
       <ProjectWizard
         open={editOpen}
         mode="edit"

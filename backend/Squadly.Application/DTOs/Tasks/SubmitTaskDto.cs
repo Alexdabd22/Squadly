@@ -10,7 +10,7 @@ public class SubmitTaskDto
 
     public List<string>? Links { get; set; }
 
-    [Range(0.1, 999, ErrorMessage = "Кількість годин від 0.1 до 999")]
+    [Range(0.1, 24, ErrorMessage = "Кількість годин від 0.1 до 24")]
     public decimal? HoursSpent { get; set; }
 
     public bool SelfChecked { get; set; } = false;

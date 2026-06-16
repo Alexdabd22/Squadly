@@ -61,6 +61,7 @@ public class SearchController : ControllerBase
                 title = t.Title,
                 status = t.Status,
                 priority = t.Priority,
+                projectId = t.ProjectId,
                 projectTitle = t.Project != null ? t.Project.Title : "",
                 type = "task"
             })

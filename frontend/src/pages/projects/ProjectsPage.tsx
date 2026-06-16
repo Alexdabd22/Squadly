@@ -23,10 +23,15 @@ export default function ProjectsPage() {
 
   const { confirm, confirmProps } = useConfirm()
   const navigate = useNavigate()
-  const globalRole = sessionStorage.getItem('globalRole') ?? 'User'
+  const [globalRole, setGlobalRole] = useState(sessionStorage.getItem('globalRole') ?? 'User')
   const canCreateProjects = globalRole === 'Organizer' || globalRole === 'Admin'
 
-  useEffect(() => { loadProjects() }, [])
+  useEffect(() => {
+    loadProjects()
+    const handleAuthChange = () => setGlobalRole(sessionStorage.getItem('globalRole') ?? 'User')
+    window.addEventListener('authChanged', handleAuthChange)
+    return () => window.removeEventListener('authChanged', handleAuthChange)
+  }, [])
 
   const loadProjects = async () => {
     try {

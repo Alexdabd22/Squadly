@@ -83,6 +83,57 @@ public class UsersController : ControllerBase
         });
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user == null)
+            return NotFound(new { message = "Користувача не знайдено" });
+
+        var totalPoints = await _db.Ratings
+            .Where(r => r.UserId == id)
+            .SumAsync(r => (int?)r.Points) ?? 0;
+
+        var tasksCompleted = await _db.Tasks
+            .CountAsync(t => t.AssigneeUserId == id && t.Status == "Done");
+
+        var tasksInProgress = await _db.Tasks
+            .CountAsync(t => t.AssigneeUserId == id && t.Status == "InProgress");
+
+        var commentsCount = await _db.Comments.CountAsync(c => c.AuthorUserId == id);
+
+        var allPoints = await _db.Ratings
+            .GroupBy(r => r.UserId)
+            .Select(g => new { UserId = g.Key, Points = g.Sum(r => r.Points) })
+            .OrderByDescending(x => x.Points)
+            .ToListAsync();
+        var rank = allPoints.FindIndex(x => x.UserId == id) + 1;
+
+        var projectsCount = await _db.ProjectMemberships
+            .CountAsync(pm => pm.UserId == id
+                && _db.Projects.Any(p => p.Id == pm.ProjectId && !p.IsDeleted));
+
+        return Ok(new
+        {
+            user.Id,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            FullName = user.FirstName + " " + user.LastName,
+            GlobalRole = user.GlobalRole.ToString(),
+            user.CreatedAt,
+            Stats = new
+            {
+                TotalPoints = totalPoints,
+                Rank = rank > 0 ? rank : 0,
+                TasksCompleted = tasksCompleted,
+                TasksInProgress = tasksInProgress,
+                CommentsCount = commentsCount,
+                ProjectsCount = projectsCount,
+            }
+        });
+    }
+
     private Guid GetUserId()
     {
         var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
