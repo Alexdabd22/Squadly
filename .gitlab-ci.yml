@@ -53,7 +53,7 @@ backend_test:
   needs: [backend_build]
   script:
     - cd backend
-    - dotnet test --configuration Release --no-build --logger "console;verbosity=normal"
+    - dotnet test --configuration Release --logger "console;verbosity=normal"
 
 frontend_lint:
   stage: test
