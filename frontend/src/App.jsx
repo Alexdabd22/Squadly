@@ -22,6 +22,7 @@ import CalendarPage from "./pages/calendar/CalendarPage";
 import MentorProjectPage from "./pages/mentor/MentorProjectPage";
 import UserProfilePage from "./pages/profile/UserProfilePage";
 import AdminChatWidget from "./components/common/AdminChatWidget";
+import AdminChatPage from "./pages/admin/AdminChatPage";
 
 const PRIMARY_LINKS = [
   { to: "/dashboard", label: "Головна" },
@@ -222,6 +223,14 @@ function Navigation() {
                     >
                       Сповіщення
                     </NavLink>
+                    {globalRole !== "Admin" && (
+                      <button
+                        onClick={() => { setUserOpen(false); window.dispatchEvent(new Event("openAdminChat")); }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        Зв'язатися з адміном
+                      </button>
+                    )}
                     <hr className="my-1 border-slate-100" />
                     <button
                       onClick={handleLogout}
@@ -279,6 +288,7 @@ export default function App() {
         <Route path="/mentor/project/:projectId" element={<AuthGuard><MentorProjectPage /></AuthGuard>} />
         <Route path="/calendar" element={<AuthGuard><CalendarPage /></AuthGuard>} />
         <Route path="/admin" element={<AuthGuard><AdminPage /></AuthGuard>} />
+        <Route path="/admin/chat" element={<AuthGuard><AdminChatPage /></AuthGuard>} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <AdminChatWidget />

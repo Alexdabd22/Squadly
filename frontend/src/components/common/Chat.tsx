@@ -46,7 +46,7 @@ export default function Chat({ scope, scopeId, title }: ChatProps) {
     const token = sessionStorage.getItem('token')
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5176/hubs/chat', {
+      .withUrl(`${import.meta.env.VITE_API_URL || 'http://localhost:5176'}/hubs/chat`, {
         accessTokenFactory: () => token || '',
       })
       .withAutomaticReconnect()

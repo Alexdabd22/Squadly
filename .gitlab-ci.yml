@@ -1,0 +1,100 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - when: never
+
+stages:
+  - build
+  - test
+  - docker
+
+variables:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+# ───── BUILD ─────
+
+backend_build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  tags:
+    - student
+  script:
+    - cd backend
+    - dotnet restore
+    - dotnet build --configuration Release --no-restore
+  artifacts:
+    paths:
+      - backend/Squadly.API/bin/Release/
+    expire_in: 1 hour
+
+frontend_build:
+  stage: build
+  image: node:20-alpine
+  tags:
+    - student
+  script:
+    - cd frontend
+    - npm ci --no-audit --no-fund
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 hour
+
+# ───── TEST ─────
+
+backend_test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  tags:
+    - student
+  needs: [backend_build]
+  script:
+    - cd backend
+    - dotnet test --configuration Release --no-build --logger "console;verbosity=normal"
+
+frontend_lint:
+  stage: test
+  image: node:20-alpine
+  tags:
+    - student
+  needs: [frontend_build]
+  script:
+    - cd frontend
+    - npm ci --no-audit --no-fund
+    - npm run lint
+  allow_failure: true
+
+# ───── DOCKER ─────
+
+docker_build_backend:
+  stage: docker
+  image: docker:24
+  tags:
+    - student
+    - docker
+  services:
+    - docker:24-dind
+  needs: [backend_test]
+  script:
+    - docker build -t squadly-backend:$CI_COMMIT_SHORT_SHA -f backend/Squadly.API/Dockerfile ./backend
+    - docker tag squadly-backend:$CI_COMMIT_SHORT_SHA squadly-backend:latest
+  only:
+    - main
+
+docker_build_frontend:
+  stage: docker
+  image: docker:24
+  tags:
+    - student
+    - docker
+  services:
+    - docker:24-dind
+  needs: [frontend_build]
+  script:
+    - docker build -t squadly-frontend:$CI_COMMIT_SHORT_SHA --build-arg VITE_API_URL=http://localhost:5176 ./frontend
+    - docker tag squadly-frontend:$CI_COMMIT_SHORT_SHA squadly-frontend:latest
+  only:
+    - main

@@ -29,17 +29,21 @@ export default function AdminChatWidget() {
   const myId = sessionStorage.getItem('userId')
   const role = sessionStorage.getItem('globalRole')
 
-  if (role === 'Admin') return null
-  if (!myId) return null
-
-  useEffect(() => { loadUnread() }, [])
+  useEffect(() => {
+    if (!myId || role === 'Admin') return
+    loadUnread()
+    const handler = () => setOpen(true)
+    window.addEventListener('openAdminChat', handler)
+    return () => window.removeEventListener('openAdminChat', handler)
+  }, [myId, role])
 
   useEffect(() => {
+    if (!myId || role === 'Admin') return
     const token = sessionStorage.getItem('token')
     if (!token) return
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5176/hubs/admin-chat', { accessTokenFactory: () => token })
+      .withUrl(`${import.meta.env.VITE_API_URL || 'http://localhost:5176'}/hubs/admin-chat`, { accessTokenFactory: () => token })
       .withAutomaticReconnect()
       .build()
 
@@ -109,6 +113,8 @@ export default function AdminChatWidget() {
       setSending(false)
     }
   }
+
+  if (role === 'Admin' || !myId) return null
 
   return (
     <>

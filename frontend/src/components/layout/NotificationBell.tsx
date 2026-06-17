@@ -40,7 +40,7 @@ export default function NotificationBell() {
     if (!token) return
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5176/hubs/notifications', {
+      .withUrl(`${import.meta.env.VITE_API_URL || 'http://localhost:5176'}/hubs/notifications`, {
         accessTokenFactory: () => token,
       })
       .withAutomaticReconnect()

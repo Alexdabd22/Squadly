@@ -450,3 +450,7 @@ modules.*.Development.json
 **/key.pem
 **/csr.csr
 **/localhost.pfx
+
+# User uploads (runtime files, not source)
+backend/Squadly.API/uploads/*
+!backend/Squadly.API/uploads/.gitkeep

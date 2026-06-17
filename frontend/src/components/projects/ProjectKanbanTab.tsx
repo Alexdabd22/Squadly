@@ -67,7 +67,7 @@ export default function ProjectKanbanTab({ projectId, canManage, userRole, onTas
   const setupSignalR = async () => {
     const token = sessionStorage.getItem('token')
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5176/hubs/chat', { accessTokenFactory: () => token || '' })
+      .withUrl(`${import.meta.env.VITE_API_URL || 'http://localhost:5176'}/hubs/chat`, { accessTokenFactory: () => token || '' })
       .withAutomaticReconnect()
       .build()
 
