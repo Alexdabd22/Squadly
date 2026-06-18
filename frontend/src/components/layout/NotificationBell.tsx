@@ -55,9 +55,9 @@ export default function NotificationBell() {
       window.dispatchEvent(new Event('authChanged'))
     })
 
+    connectionRef.current = connection
     try {
       await connection.start()
-      connectionRef.current = connection
     } catch (err) {
       console.warn('NotificationHub: не вдалося підключитись, fallback на REST')
       const interval = setInterval(loadCount, 60000)

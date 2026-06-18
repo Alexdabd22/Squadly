@@ -23,11 +23,21 @@ export default function AdminChatWidget() {
   const [sending, setSending] = useState(false)
   const [unread, setUnread] = useState(0)
   const [error, setError] = useState('')
+  const [myId, setMyId] = useState<string | null>(sessionStorage.getItem('userId'))
+  const [role, setRole] = useState<string | null>(sessionStorage.getItem('globalRole'))
 
   const connectionRef = useRef<signalR.HubConnection | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const myId = sessionStorage.getItem('userId')
-  const role = sessionStorage.getItem('globalRole')
+
+  // Оновлюємо при authChanged (логін / зміна ролі)
+  useEffect(() => {
+    const sync = () => {
+      setMyId(sessionStorage.getItem('userId'))
+      setRole(sessionStorage.getItem('globalRole'))
+    }
+    window.addEventListener('authChanged', sync)
+    return () => window.removeEventListener('authChanged', sync)
+  }, [])
 
   useEffect(() => {
     if (!myId || role === 'Admin') return
@@ -36,6 +46,9 @@ export default function AdminChatWidget() {
     window.addEventListener('openAdminChat', handler)
     return () => window.removeEventListener('openAdminChat', handler)
   }, [myId, role])
+
+  const openRef = useRef(open)
+  useEffect(() => { openRef.current = open }, [open])
 
   useEffect(() => {
     if (!myId || role === 'Admin') return
@@ -53,18 +66,18 @@ export default function AdminChatWidget() {
         if (prev.some((m) => m.id === msg.id)) return prev
         return [...prev, msg]
       })
-      if (msg.fromAdmin && !open) {
+      if (msg.fromAdmin && !openRef.current) {
         setUnread((u) => u + 1)
       }
     })
 
+    connectionRef.current = connection
     connection.start()
       .then(() => connection.invoke('JoinUserThread'))
       .catch((err) => console.error('AdminChat SignalR error', err))
 
-    connectionRef.current = connection
     return () => { connection.stop() }
-  }, [myId, open])
+  }, [myId])
 
   useEffect(() => {
     if (open && scrollRef.current) {

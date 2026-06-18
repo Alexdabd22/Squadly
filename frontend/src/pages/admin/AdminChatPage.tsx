@@ -56,9 +56,14 @@ export default function AdminChatPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const connectionRef = useRef<signalR.HubConnection | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef(search)
+  const selectedUserIdRef = useRef(selectedUserId)
   const { confirm, confirmProps } = useConfirm()
 
   const selectedThread = threads.find((t) => t.userId === selectedUserId)
+
+  useEffect(() => { searchRef.current = search }, [search])
+  useEffect(() => { selectedUserIdRef.current = selectedUserId }, [selectedUserId])
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -88,19 +93,19 @@ export default function AdminChatPage() {
       .build()
 
     connection.on('NewMessage', (msg: Message) => {
-      if (msg.userId === selectedUserId) {
+      if (msg.userId === selectedUserIdRef.current) {
         setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg])
       }
-      loadThreads(search)
+      loadThreads(searchRef.current)
     })
 
+    connectionRef.current = connection
     connection.start()
       .then(() => connection.invoke('JoinAdminPool'))
       .catch((err) => console.error('AdminChat SignalR error', err))
 
-    connectionRef.current = connection
     return () => { connection.stop() }
-  }, [selectedUserId, search])
+  }, [])
 
   useEffect(() => {
     if (!selectedUserId) {

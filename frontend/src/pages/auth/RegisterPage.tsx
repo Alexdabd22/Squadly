@@ -23,7 +23,7 @@ export default function RegisterPage() {
       await api.post('/auth/register', form)
       navigate('/login')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed')
+      setError(err.response?.data?.message || 'Помилка реєстрації')
     } finally {
       setLoading(false)
     }
@@ -68,18 +68,19 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Пошта</label>
             <input
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="example@email.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Пароль</label>
             <input
               type="password"
               value={form.password}
